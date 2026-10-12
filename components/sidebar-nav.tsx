@@ -155,7 +155,7 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
           <div className="group/main relative mx-3 flex flex-col items-center overflow-hidden rounded-2xl bg-sidebar-accent/40 p-4 transition-[padding,background-color] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-0.5">
             <div className="relative size-20 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:size-11">
               <ChatAvatar seed={main.avatar} color={main.color} className="size-full" />
-              <span className="absolute right-[5%] bottom-[5%] flex size-6 items-center justify-center rounded-full bg-black transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:size-4">
+              <span className="absolute right-[10%] bottom-[10%] flex size-6 items-center justify-center rounded-full bg-black transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:size-4">
                 <StarIcon className="size-3.5 fill-yellow-400 text-yellow-400 group-data-[collapsible=icon]:size-2.5" />
               </span>
             </div>
@@ -167,7 +167,7 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
               size="icon-sm"
               variant="ghost"
               aria-label="Hauptbot bearbeiten"
-              className="absolute top-2 right-2 opacity-0 transition-opacity group-hover/main:opacity-100 focus-visible:opacity-100 group-data-[collapsible=icon]:hidden"
+              className="absolute top-1/2 right-2 -translate-y-1/2 opacity-0 transition-opacity group-hover/main:opacity-100 focus-visible:opacity-100 group-data-[collapsible=icon]:hidden"
               onClick={() => setEditing(main)}
             >
               <PencilIcon />
