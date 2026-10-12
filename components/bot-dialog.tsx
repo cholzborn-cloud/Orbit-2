@@ -42,6 +42,8 @@ const PRESETS = [
   { job: "Planen", instructions: "Teile Aufgaben in kleine Schritte und setze klare Prioritäten." },
 ];
 
+const MAIN_JOB = "Koordinator";
+
 const COLORS = ["#ef4444", "#f97316", "#facc15", "#84cc16", "#22c55e", "#14b8a6", "#3b82f6", "#8b5cf6", "#ec4899", "#94a3b8"];
 const DOT_SELECTED = "ring-2 ring-white ring-offset-2 ring-offset-popover";
 
@@ -73,6 +75,7 @@ export function BotDialog({
   const job = form.watch("job");
   const avatar = form.watch("avatar");
   const color = form.watch("color");
+  const isMain = !!form.watch("isMain");
 
   const onSubmit = form.handleSubmit((values) =>
     startTransition(async () => {
@@ -176,6 +179,26 @@ export function BotDialog({
               <FieldError errors={[errors.name]} />
             </Field>
 
+            <Field orientation="horizontal">
+              <Controller
+                control={form.control}
+                name="isMain"
+                render={({ field }) => (
+                  <Switch
+                    id="bot-main"
+                    checked={!!field.value}
+                    onCheckedChange={(checked) => {
+                      field.onChange(checked);
+                      // Hauptbot hat eine feste Aufgabe, keine frei wählbare Profession.
+                      if (checked) form.setValue("job", MAIN_JOB, { shouldValidate: true });
+                      else if (form.getValues("job") === MAIN_JOB) form.setValue("job", PRESETS[0].job);
+                    }}
+                  />
+                )}
+              />
+              <FieldLabel htmlFor="bot-main">Hauptbot</FieldLabel>
+            </Field>
+
             <Field data-invalid={!!errors.job}>
               <FieldLabel htmlFor="bot-job">Aufgabe</FieldLabel>
               <div className="flex flex-wrap gap-1.5">
@@ -185,6 +208,7 @@ export function BotDialog({
                     type="button"
                     size="sm"
                     variant="outline"
+                    disabled={isMain}
                     aria-pressed={job === p.job}
                     className={cn(
                       "rounded-full",
@@ -201,7 +225,7 @@ export function BotDialog({
                   </Button>
                 ))}
               </div>
-              <Input id="bot-job" placeholder="Begleiter" aria-invalid={!!errors.job} {...form.register("job")} />
+              <Input id="bot-job" placeholder="Begleiter" readOnly={isMain} aria-invalid={!!errors.job} {...form.register("job")} />
               <FieldError errors={[errors.job]} />
             </Field>
 
@@ -215,16 +239,6 @@ export function BotDialog({
                 {...form.register("instructions")}
               />
               <FieldError errors={[errors.instructions]} />
-            </Field>
-            <Field orientation="horizontal">
-              <Controller
-                control={form.control}
-                name="isMain"
-                render={({ field }) => (
-                  <Switch id="bot-main" checked={!!field.value} onCheckedChange={field.onChange} />
-                )}
-              />
-              <FieldLabel htmlFor="bot-main">Hauptbot</FieldLabel>
             </Field>
             <FieldError>{errors.root?.message}</FieldError>
           </FieldGroup>
