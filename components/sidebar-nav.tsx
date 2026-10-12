@@ -84,7 +84,7 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
           <div className="group/main relative mx-3 flex flex-col items-center gap-1 rounded-2xl bg-sidebar-accent/40 p-5">
             <div className="relative">
               <ChatAvatar seed={main.avatar} color={main.color} animated className="size-20" />
-              <span className="absolute -right-1 -bottom-1 flex size-6 items-center justify-center rounded-full bg-black">
+              <span className="absolute right-2 bottom-2 flex size-6 items-center justify-center rounded-full bg-black">
                 <StarIcon className="size-3.5 fill-yellow-400 text-yellow-400" />
               </span>
             </div>
@@ -94,7 +94,7 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
               size="icon-sm"
               variant="ghost"
               aria-label="Hauptbot bearbeiten"
-              className="absolute top-2 right-2"
+              className="absolute top-2 right-2 opacity-0 transition-opacity group-hover/main:opacity-100 focus-visible:opacity-100"
               onClick={() => setEditing(main)}
             >
               <PencilIcon />
