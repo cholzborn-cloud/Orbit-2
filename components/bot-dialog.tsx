@@ -30,13 +30,15 @@ import { cn } from "@/lib/utils";
 
 const PRESETS = [
   { job: "Begleiter", instructions: "Antworte freundlich und kurz." },
-  {
-    job: "Recherche-Assistent",
-    instructions: "Antworte kurz, nenne Quellen und frage nach, bevor du etwas Destruktives tust.",
-  },
-  { job: "Code-Reviewer", instructions: "Prüfe Code auf Fehler, Lesbarkeit und Sicherheit. Sei konkret." },
-  { job: "Schreib-Lektor", instructions: "Verbessere Texte, ohne den Stil des Autors zu ändern." },
-  { job: "Tutor", instructions: "Erkläre Schritt für Schritt und prüfe das Verständnis mit kurzen Fragen." },
+  { job: "Recherche", instructions: "Antworte kurz, nenne Quellen und frage nach, bevor du etwas Destruktives tust." },
+  { job: "Programmieren", instructions: "Schreibe sauberen, einfachen Code. Erkläre kurz, was du änderst." },
+  { job: "Code-Review", instructions: "Prüfe Code auf Fehler, Lesbarkeit und Sicherheit. Sei konkret." },
+  { job: "Texte", instructions: "Verbessere Texte, ohne den Stil des Autors zu ändern." },
+  { job: "Lernen", instructions: "Erkläre Schritt für Schritt und prüfe das Verständnis mit kurzen Fragen." },
+  { job: "Übersetzen", instructions: "Übersetze natürlich und treffend. Frage bei Mehrdeutigkeit nach." },
+  { job: "Zusammenfassen", instructions: "Fasse in wenigen Stichpunkten zusammen. Nur das Wichtigste." },
+  { job: "Ideen", instructions: "Liefere viele kreative Ideen, kurz und konkret. Dann die beste empfehlen." },
+  { job: "Planen", instructions: "Teile Aufgaben in kleine Schritte und setze klare Prioritäten." },
 ];
 
 const orbiName = (orbi: string) => orbi[0].toUpperCase() + orbi.slice(1);
@@ -50,6 +52,7 @@ export function BotDialog({ trigger }: { trigger: React.ReactElement }) {
     defaultValues: { avatar: "erdi", name: orbiName("erdi"), ...PRESETS[0] },
   });
   const { errors } = form.formState;
+  const job = form.watch("job");
 
   const onSubmit = form.handleSubmit((values) =>
     startTransition(async () => {
@@ -118,7 +121,7 @@ export function BotDialog({ trigger }: { trigger: React.ReactElement }) {
                     key={p.job}
                     type="button"
                     size="sm"
-                    variant="outline"
+                    variant={job === p.job ? "secondary" : "outline"}
                     className="rounded-full"
                     onClick={() => {
                       form.setValue("job", p.job, { shouldValidate: true });
