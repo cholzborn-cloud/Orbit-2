@@ -73,14 +73,18 @@ function trackPointer() {
   if (tracking || typeof window === "undefined") return
   tracking = true
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+  // Beide Pupillen eines Orbis bekommen denselben Versatz (Blick vom Gesichtsmittelpunkt zum Zeiger),
+  // sonst bewegt sich nahe am Orbi scheinbar nur ein Auge.
   const update = (x: number, y: number) => {
-    document.querySelectorAll<SVGElement>(".orbi-inline .dbga-pupil").forEach((pupil) => {
-      const r = (pupil.parentElement ?? pupil).getBoundingClientRect()
+    document.querySelectorAll<HTMLElement>(".orbi-inline").forEach((orbi) => {
+      const r = orbi.getBoundingClientRect()
       const dx = x - (r.left + r.width / 2)
       const dy = y - (r.top + r.height / 2)
       const d = Math.hypot(dx, dy) || 1
-      const k = (Math.min(1, d / 140) * MAX_TRAVEL) / d
-      pupil.style.transform = `translate(${dx * k}px, ${dy * k}px)`
+      const k = (Math.min(1, d / 60) * MAX_TRAVEL) / d
+      orbi.querySelectorAll<SVGElement>(".dbga-pupil").forEach((pupil) => {
+        pupil.style.transform = `translate(${dx * k}px, ${dy * k}px)`
+      })
     })
   }
   window.addEventListener("pointermove", (e) => update(e.clientX, e.clientY), { passive: true })
