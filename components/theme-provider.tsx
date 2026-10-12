@@ -13,6 +13,9 @@ function ThemeProvider({
       defaultTheme="system"
       enableSystem
       disableTransitionOnChange
+      // Client rendert das Script als Datenblock: React 19 warnt sonst bei <script> im Client-Render.
+      // Der Server liefert es normal aus, es läuft also weiterhin vor dem ersten Paint.
+      scriptProps={{ type: typeof window === "undefined" ? undefined : "application/json" }}
       {...props}
     >
       <ThemeHotkey />
