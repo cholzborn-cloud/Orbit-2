@@ -1,5 +1,6 @@
 "use client";
 
+import { BanIcon } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -40,7 +41,8 @@ const PRESETS = [
   { job: "Planen", instructions: "Teile Aufgaben in kleine Schritte und setze klare Prioritäten." },
 ];
 
-const COLORS = ["#ef4444", "#f97316", "#facc15", "#22c55e", "#14b8a6", "#3b82f6", "#8b5cf6", "#ec4899", "#94a3b8"];
+const COLORS = ["#ef4444", "#f97316", "#facc15", "#84cc16", "#22c55e", "#14b8a6", "#3b82f6", "#8b5cf6", "#ec4899", "#94a3b8"];
+const DOT_SELECTED = "ring-2 ring-white ring-offset-2 ring-offset-popover";
 
 const orbiName = (orbi: string) => orbi[0].toUpperCase() + orbi.slice(1);
 
@@ -112,12 +114,35 @@ export function BotDialog({ trigger }: { trigger: React.ReactElement }) {
 
             <Field>
               <FieldLabel>Farbe</FieldLabel>
-              <div className="flex items-center gap-2">
+              <div className="grid grid-cols-12 gap-2">
+                <button
+                  type="button"
+                  aria-label="Originalfarbe"
+                  aria-pressed={!color}
+                  onClick={() => form.setValue("color", null)}
+                  className={cn(
+                    "flex aspect-square w-full items-center justify-center rounded-full border border-dashed border-foreground/40 text-muted-foreground",
+                    !color && DOT_SELECTED,
+                  )}
+                >
+                  <BanIcon className="size-1/2" />
+                </button>
+                {COLORS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    aria-label={c}
+                    aria-pressed={color === c}
+                    onClick={() => form.setValue("color", c)}
+                    style={{ backgroundColor: c }}
+                    className={cn("aspect-square w-full rounded-full", color === c && DOT_SELECTED)}
+                  />
+                ))}
                 <label
                   aria-label="Eigene Farbe wählen"
                   className={cn(
-                    "relative size-6 shrink-0 cursor-pointer rounded-full bg-[conic-gradient(red,yellow,lime,aqua,blue,magenta,red)]",
-                    color && !COLORS.includes(color) && "ring-2 ring-white ring-offset-2 ring-offset-background",
+                    "relative aspect-square w-full cursor-pointer rounded-full bg-[conic-gradient(red,yellow,lime,aqua,blue,magenta,red)]",
+                    color && !COLORS.includes(color) && DOT_SELECTED,
                   )}
                 >
                   <input
@@ -127,20 +152,6 @@ export function BotDialog({ trigger }: { trigger: React.ReactElement }) {
                     className="absolute inset-0 size-full cursor-pointer opacity-0"
                   />
                 </label>
-                {COLORS.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    aria-label={c}
-                    aria-pressed={color === c}
-                    onClick={() => form.setValue("color", c)}
-                    style={{ backgroundColor: c }}
-                    className={cn(
-                      "size-6 shrink-0 rounded-full",
-                      color === c && "ring-2 ring-white ring-offset-2 ring-offset-background",
-                    )}
-                  />
-                ))}
               </div>
             </Field>
 
