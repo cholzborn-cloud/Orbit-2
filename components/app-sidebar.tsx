@@ -61,9 +61,11 @@ export async function AppSidebar() {
                 showName
                 appearance={{
                   elements: {
-                    userButtonBox: "flex-row-reverse gap-3",
+                    // order! statt Reihenfolge im DOM: Avatar links, Name rechts.
+                    userButtonBox: "flex-row! gap-3",
+                    userButtonTrigger: "order-first!",
                     userButtonOuterIdentifier:
-                      "text-sm font-medium text-sidebar-foreground group-data-[collapsible=icon]:hidden",
+                      "order-last! text-sm font-medium text-sidebar-foreground group-data-[collapsible=icon]:hidden",
                   },
                 }}
               />
