@@ -11,7 +11,6 @@ export const ORBIS = [
   "veni",
   "nepi",
   "urani",
-  "sunny",
   "pluti",
 ] as const
 
