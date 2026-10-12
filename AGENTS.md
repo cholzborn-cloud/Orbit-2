@@ -23,6 +23,20 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Niemals Zeilen backfillen, migrieren oder erhalten. Kein Aufwand, alte Daten am Laufen zu halten.
 - Jede Schema-Änderung bedeutet ein sauberes Neuaufsetzen.
 
+## Formulare
+
+- Schema: Insert-Schema per `createInsertSchema` (drizzle-zod) in `lib/db/<name>-schema.ts`. Formular-Schema per `.pick()` nur auf die Felder, die der Nutzer ausfüllt.
+- Server Action in `actions/<name>.ts`: `"use server"`, `userId` immer per Clerk `auth()` holen, nie aus dem Client. Eingabe mit `safeParse` prüfen. Rückgabe als `{ ok: true, ... } | { ok: false, error }`.
+- Client: `react-hook-form` mit `zodResolver`. Server-Fehler über `form.setError("root", ...)` anzeigen.
+- Felder: `Field`, `FieldLabel`, `FieldError` aus `components/ui/field`. Deutsche Labels und Fehlermeldungen direkt im Schema.
+- Textareas: `resize-none`, damit das Feld nicht verzerrt wird.
+- Auswahl-Knöpfe (Chips, Planeten): ausgewählt nur per Farbe. Keine Größen-, Rahmen- oder Icon-Änderung, sonst verschieben sich die Knöpfe.
+- Chip-Reihen: `flex flex-wrap gap-1.5`, natürliche Breite, gleicher Abstand. Kein `justify-between`, kein `w-full`.
+- Ausgewählter Chip: Hintergrund komplett `bg-white` inkl. Hover, Active und `dark:`-Varianten überschreiben. Outline-Hover (`dark:hover:bg-input/50`) sonst wirkt beim Drücken schwarz.
+- Vorbelegung: sinnvolle Defaults setzen. Ein Auto-Name (z. B. Planet-Name) nur ersetzen, solange der Nutzer das Feld nicht selbst geändert hat.
+- Install: `npm i <pkg> --legacy-peer-deps` (Peer-Konflikt von `@hookform/resolvers` mit zod).
+- Commits: keine E-Mail-Adresse in der Commit-Nachricht. Der `rulebook-guard`-Hook blockiert sie.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 ## This is NOT the Next.js you know
