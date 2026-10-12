@@ -1,5 +1,4 @@
 import { auth } from "@clerk/nextjs/server";
-import { desc, eq } from "drizzle-orm";
 
 import { UserMenuButton } from "@/components/user-menu-button";
 import { SidebarNav, type SidebarBot } from "@/components/sidebar-nav";
@@ -9,18 +8,13 @@ import {
   SidebarMenu,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { db } from "@/lib/db";
-import { chats } from "@/lib/db/schema";
+import { getUserChats } from "@/query/bot";
 
 export async function AppSidebar() {
   const { userId } = await auth();
   if (!userId) return null;
 
-  const rows = await db.query.chats.findMany({
-    where: eq(chats.userId, userId),
-    orderBy: desc(chats.lastMessageAt),
-    with: { members: { with: { bot: true } } },
-  });
+  const rows = await getUserChats(userId);
 
   const bots: SidebarBot[] = rows
     .filter((c) => c.kind === "direct" && c.members[0])
