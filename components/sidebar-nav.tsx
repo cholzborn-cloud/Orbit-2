@@ -1,6 +1,6 @@
 "use client";
 
-import { PencilIcon, PlusIcon, SearchIcon, StarIcon, UserPlusIcon, UsersIcon } from "lucide-react";
+import { PencilIcon, PlusIcon, SearchIcon, StarIcon, UsersIcon } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { BotDialog } from "@/components/bot-dialog";
@@ -34,6 +34,12 @@ export type SidebarBot = {
 
 export type SidebarGroupChat = { id: string; name: string; members: number };
 
+const EASE = "duration-300 ease-[cubic-bezier(.32,.72,0,1)]";
+const ROW =
+  "h-12 gap-3 rounded-xl group-data-[collapsible=icon]:size-12! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:rounded-full";
+// Text blendet aus und klappt zu, damit der Avatar mit der Leiste zur Mitte gleitet.
+const LABEL = `flex min-w-0 max-w-40 flex-col leading-tight transition-[max-width,opacity] ${EASE} group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0`;
+
 export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: SidebarGroupChat[] }) {
   const [query, setQuery] = useState("");
   const [creatingBot, setCreatingBot] = useState(false);
@@ -56,7 +62,7 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
     <>
       <SidebarHeader className="gap-3 p-3 group-data-[collapsible=icon]:items-center">
         <div className="flex items-center justify-between group-data-[collapsible=icon]:justify-center">
-          <span className="text-lg font-semibold group-data-[collapsible=icon]:hidden">Orbit</span>
+          <span className="text-lg font-semibold transition-opacity duration-200 group-data-[collapsible=icon]:hidden">Orbit</span>
           <SidebarTrigger className="rounded-full group-data-[collapsible=icon]:size-10 group-data-[collapsible=icon]:bg-muted" />
         </div>
         <div className="flex items-center gap-2 group-data-[collapsible=icon]:flex-col">
@@ -101,18 +107,18 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="gap-1">
         {main && (!q || match(main.name)) && (
-          <div className="group/main relative mx-3 flex flex-col items-center gap-1 overflow-hidden rounded-2xl bg-sidebar-accent/40 p-5 transition-[padding,background-color] duration-300 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-1">
-            <div className="relative size-20 transition-[width,height] duration-300 group-data-[collapsible=icon]:size-11">
+          <div className="group/main relative mx-3 flex flex-col items-center overflow-hidden rounded-2xl bg-sidebar-accent/40 p-4 transition-[padding,background-color] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-0.5">
+            <div className="relative size-20 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:size-11">
               <ChatAvatar seed={main.avatar} color={main.color} animated className="size-full" />
-              <span className="absolute right-[10%] bottom-[10%] flex size-6 items-center justify-center rounded-full bg-black transition-[width,height] duration-300 group-data-[collapsible=icon]:size-4">
+              <span className="absolute right-[10%] bottom-[10%] flex size-6 items-center justify-center rounded-full bg-black transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:size-4">
                 <StarIcon className="size-3.5 fill-yellow-400 text-yellow-400 group-data-[collapsible=icon]:size-2.5" />
               </span>
             </div>
-            <div className="flex flex-col items-center gap-1 transition-opacity duration-200 group-data-[collapsible=icon]:h-0 group-data-[collapsible=icon]:opacity-0">
-              <span className="font-semibold">{main.name}</span>
-              <span className="text-xs text-muted-foreground">Hauptbot</span>
+            <div className="mt-2 flex max-h-12 flex-col items-center gap-0.5 transition-[max-height,margin,opacity] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:mt-0 group-data-[collapsible=icon]:max-h-0 group-data-[collapsible=icon]:opacity-0">
+              <span className="font-semibold leading-tight">{main.name}</span>
+              <span className="text-xs leading-tight text-muted-foreground">Hauptbot</span>
             </div>
             <Button
               size="icon-sm"
@@ -126,55 +132,51 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
           </div>
         )}
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Orbis</SidebarGroupLabel>
-          <SidebarMenu>
+        <SidebarGroup className="px-3 py-1">
+          <SidebarGroupLabel className="px-2">Orbis</SidebarGroupLabel>
+          <SidebarMenu className="gap-1">
             {shownBots.map((b) => (
               <SidebarMenuItem key={b.id}>
-                <SidebarMenuButton size="lg" className="h-12 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-12! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-full" tooltip={b.name}>
+                <SidebarMenuButton size="lg" className={ROW} tooltip={b.name}>
                   <ChatAvatar seed={b.avatar} color={b.color} className="size-8 group-data-[collapsible=icon]:size-9" />
-                  <div className="flex min-w-0 flex-col leading-tight group-data-[collapsible=icon]:hidden">
-                    <span className="truncate font-medium">
-                      {b.name}
-                    </span>
+                  <div className={LABEL}>
+                    <span className="truncate font-medium">{b.name}</span>
                     <span className="truncate text-xs text-muted-foreground">{b.job}</span>
                   </div>
                 </SidebarMenuButton>
-                <SidebarMenuAction showOnHover className="top-3.5 group-data-[collapsible=icon]:hidden" onClick={() => setEditing(b)} aria-label="Bearbeiten">
+                <SidebarMenuAction
+                  showOnHover
+                  className="top-3.5 group-data-[collapsible=icon]:hidden"
+                  onClick={() => setEditing(b)}
+                  aria-label="Bearbeiten"
+                >
                   <PencilIcon />
                 </SidebarMenuAction>
               </SidebarMenuItem>
             ))}
-            {shownBots.length === 0 && (q || !main) && <p className="px-2 text-xs text-muted-foreground">Keine Orbis gefunden.</p>}
+            {shownBots.length === 0 && (q || !main) && (
+              <p className="px-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">Keine Orbis gefunden.</p>
+            )}
           </SidebarMenu>
         </SidebarGroup>
 
-        {(shownGroups.length > 0 || !q) && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Gruppen</SidebarGroupLabel>
-            <SidebarMenu>
+        {shownGroups.length > 0 && (
+          <SidebarGroup className="px-3 py-1">
+            <SidebarGroupLabel className="px-2">Gruppen</SidebarGroupLabel>
+            <SidebarMenu className="gap-1">
               {shownGroups.map((g) => (
                 <SidebarMenuItem key={g.id}>
-                  <SidebarMenuButton size="lg" className="h-12 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-12! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-full" tooltip={g.name}>
-                    <UsersIcon className="size-6!" />
-                    <div className="flex min-w-0 flex-col leading-tight group-data-[collapsible=icon]:hidden">
+                  <SidebarMenuButton size="lg" className={ROW} tooltip={g.name}>
+                    <span className="flex size-8 shrink-0 items-center justify-center group-data-[collapsible=icon]:size-9">
+                      <UsersIcon className="size-5!" />
+                    </span>
+                    <div className={LABEL}>
                       <span className="truncate font-medium">{g.name}</span>
                       <span className="text-xs text-muted-foreground">{g.members} Orbis</span>
                     </div>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  size="lg"
-                  className="h-12 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-12! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-full"
-                  tooltip="Gruppe erstellen"
-                  onClick={() => setCreatingGroup(true)}
-                >
-                  <UserPlusIcon className="size-6!" />
-                  <span className="group-data-[collapsible=icon]:hidden">Gruppe erstellen</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroup>
         )}
