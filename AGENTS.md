@@ -6,4 +6,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
-<!-- END:nextjs-agent-rules -->
+## Git
+
+- erstelle niemals selbstständig branches, worktrees oder commiits. Mache das nur wenn der Nutzer dir die Freigabe dazu gibt
+- Lasse Änderungen uncommitet im Working Tree im aktuellen Branch und lasse den nutzer entschein wann und wie commitet wird.
+
+
