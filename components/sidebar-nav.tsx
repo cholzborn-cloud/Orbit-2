@@ -189,7 +189,7 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
                 </SidebarMenuButton>
                 <SidebarMenuAction
                   showOnHover
-                  className="top-3.5 group-data-[collapsible=icon]:hidden"
+                  className="top-1/2! -translate-y-1/2 group-data-[collapsible=icon]:hidden"
                   onClick={() => setEditing(b)}
                   aria-label="Bearbeiten"
                 >
