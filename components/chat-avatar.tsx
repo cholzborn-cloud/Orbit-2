@@ -12,6 +12,7 @@ export const ORBIS = [
   "nepi",
   "urani",
   "pluti",
+  "universi",
 ] as const
 
 export type Orbi = (typeof ORBIS)[number]

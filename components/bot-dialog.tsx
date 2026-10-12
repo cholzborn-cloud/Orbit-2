@@ -67,7 +67,7 @@ export function BotDialog({ trigger }: { trigger: React.ReactElement }) {
           <DialogTitle>Neuer Orbi</DialogTitle>
           <DialogDescription>Gib ihm ein Gesicht, einen Namen und eine Aufgabe.</DialogDescription>
         </DialogHeader>
-        <form id="bot-form" onSubmit={onSubmit} className="max-h-[60svh] overflow-y-auto">
+        <form id="bot-form" onSubmit={onSubmit} className="-mx-2 max-h-[60svh] overflow-y-auto px-2 py-1">
           <FieldGroup>
             <Field>
               <FieldLabel>Planet</FieldLabel>
