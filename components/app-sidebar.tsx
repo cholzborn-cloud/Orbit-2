@@ -55,7 +55,7 @@ export async function AppSidebar() {
             <SidebarMenuButton
               size="lg"
               render={<div />}
-              className="h-14 rounded-xl group-data-[collapsible=icon]:size-12! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-full"
+              className="relative h-14 rounded-xl group-data-[collapsible=icon]:size-12! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-full"
             >
               <UserButton
                 showName
@@ -63,7 +63,8 @@ export async function AppSidebar() {
                   elements: {
                     // order! statt Reihenfolge im DOM: Avatar links, Name rechts.
                     userButtonBox: "flex-row! gap-3",
-                    userButtonTrigger: "order-first!",
+                    // ::after spannt den Trigger über die ganze Zeile (relative am MenuButton).
+                    userButtonTrigger: "order-first! after:absolute after:inset-0 after:cursor-pointer",
                     userButtonOuterIdentifier:
                       "order-last! text-sm font-medium text-sidebar-foreground group-data-[collapsible=icon]:hidden",
                   },
