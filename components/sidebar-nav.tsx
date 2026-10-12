@@ -41,32 +41,38 @@ export type SidebarGroupChat = {
 };
 
 // Position und Größe (in % der Fläche) der Mitglieder-Avatare, je nach Anzahl.
-const CLUSTER: Record<1 | 2 | 3 | 4, { size: number; at: [number, number][] }> = {
+const CLUSTER: Record<1 | 2 | 3 | 4 | 5, { size: number; at: [number, number][] }> = {
   1: { size: 100, at: [[0, 0]] },
   2: { size: 72, at: [[0, 0], [28, 28]] },
   3: { size: 62, at: [[19, 0], [0, 38], [38, 38]] },
   4: { size: 58, at: [[0, 0], [42, 0], [0, 42], [42, 42]] },
+  5: { size: 52, at: [[0, 0], [48, 0], [0, 48], [48, 48], [24, 24]] },
 };
 
 function GroupAvatar({ members, className }: { members: SidebarGroupChat["members"]; className?: string }) {
-  const shown = members.slice(0, 4);
-  const layout = CLUSTER[Math.max(1, shown.length) as 1 | 2 | 3 | 4];
+  // Ab 6 Mitgliedern: 4 Avatare und ein "+N".
+  const extra = members.length > 5 ? members.length - 4 : 0;
+  const shown = members.slice(0, extra ? 4 : 5);
+  const layout = CLUSTER[Math.max(1, extra ? 5 : shown.length) as 1 | 2 | 3 | 4 | 5];
+  const box = (i: number) => ({
+    width: `${layout.size}%`,
+    height: `${layout.size}%`,
+    left: `${layout.at[i][0]}%`,
+    top: `${layout.at[i][1]}%`,
+  });
   return (
     <span className={cn("relative block shrink-0", className)}>
       {shown.map((m, i) => (
-        <ChatAvatar
-          key={i}
-          seed={m.avatar}
-          color={m.color}
-          className="absolute"
-          style={{
-            width: `${layout.size}%`,
-            height: `${layout.size}%`,
-            left: `${layout.at[i][0]}%`,
-            top: `${layout.at[i][1]}%`,
-          }}
-        />
+        <ChatAvatar key={i} seed={m.avatar} color={m.color} className="absolute" style={box(i)} />
       ))}
+      {extra > 0 && (
+        <span
+          className="absolute flex items-center justify-center rounded-full bg-muted text-[0.5rem] font-semibold leading-none text-muted-foreground"
+          style={box(4)}
+        >
+          +{extra}
+        </span>
+      )}
     </span>
   );
 }
@@ -148,7 +154,7 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
         {main && (!q || match(main.name)) && (
           <div className="group/main relative mx-3 flex flex-col items-center overflow-hidden rounded-2xl bg-sidebar-accent/40 p-4 transition-[padding,background-color] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-0.5">
             <div className="relative size-20 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:size-11">
-              <ChatAvatar seed={main.avatar} color={main.color} animated className="size-full" />
+              <ChatAvatar seed={main.avatar} color={main.color} className="size-full" />
               <span className="absolute right-[10%] bottom-[10%] flex size-6 items-center justify-center rounded-full bg-black transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:size-4">
                 <StarIcon className="size-3.5 fill-yellow-400 text-yellow-400 group-data-[collapsible=icon]:size-2.5" />
               </span>

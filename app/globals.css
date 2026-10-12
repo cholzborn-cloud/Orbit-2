@@ -128,3 +128,14 @@
     @apply font-sans;
     }
 }
+/* Orbis: Animation läuft immer, die Pupillen steuert JS (folgen dem Mauszeiger). */
+.orbi-inline {
+  --dbga-p: running;
+}
+.orbi-inline .dbga-look,
+.orbi-inline .dbga-pupil {
+  animation: none !important;
+}
+.orbi-inline .dbga-pupil {
+  transition: transform 80ms linear;
+}

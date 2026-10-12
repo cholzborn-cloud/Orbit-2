@@ -1,7 +1,4 @@
-import Image from "next/image"
-
 import { TintedAvatar } from "@/components/tinted-avatar"
-import { cn } from "@/lib/utils"
 
 export const ORBIS = [
   "erdi",
@@ -43,30 +40,14 @@ function orbiFromSeed(seed: string): Orbi {
 
 export function ChatAvatar({
   seed,
-  animated = false,
   color,
   className,
   style,
 }: {
   seed: string
-  animated?: boolean
   color?: string | null
   className?: string
   style?: React.CSSProperties
 }) {
-  const orbi = orbiFromSeed(seed)
-  if (color) {
-    return <TintedAvatar orbi={orbi} animated={animated} color={color} className={className} style={style} />
-  }
-  return (
-    <Image
-      src={`/orbis/${orbi}${animated ? "" : "-static"}.svg`}
-      alt={orbi}
-      width={32}
-      height={32}
-      unoptimized
-      className={cn("shrink-0 overflow-visible", className)}
-      style={style}
-    />
-  )
+  return <TintedAvatar orbi={orbiFromSeed(seed)} color={color} className={className} style={style} />
 }

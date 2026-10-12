@@ -61,43 +61,62 @@ function loadSvg(url: string) {
   return p
 }
 
+// Ein globaler Listener: alle Pupillen aller Orbis folgen dem Mauszeiger.
+const MAX_TRAVEL = 3.2 // in SVG-Einheiten, Auge hat r=7, Pupille r=3.5
+let tracking = false
+
+function trackPointer() {
+  if (tracking || typeof window === "undefined") return
+  tracking = true
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+  const update = (x: number, y: number) => {
+    document.querySelectorAll<SVGElement>(".orbi-inline .dbga-pupil").forEach((pupil) => {
+      const r = (pupil.parentElement ?? pupil).getBoundingClientRect()
+      const dx = x - (r.left + r.width / 2)
+      const dy = y - (r.top + r.height / 2)
+      const d = Math.hypot(dx, dy) || 1
+      const k = (Math.min(1, d / 140) * MAX_TRAVEL) / d
+      pupil.style.transform = `translate(${dx * k}px, ${dy * k}px)`
+    })
+  }
+  window.addEventListener("pointermove", (e) => update(e.clientX, e.clientY), { passive: true })
+}
+
 export function TintedAvatar({
   orbi,
-  animated,
   color,
   className,
   style,
 }: {
   orbi: Orbi
-  animated: boolean
-  color: string
+  color?: string | null
   className?: string
   style?: React.CSSProperties
 }) {
-  const url = `/orbis/${orbi}${animated ? "" : "-static"}.svg`
+  const url = `/orbis/${orbi}.svg`
   const [svg, setSvg] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
+    trackPointer()
     loadSvg(url).then((t) => alive && setSvg(t))
     return () => {
       alive = false
     }
   }, [url])
 
-  // eslint-disable-next-line @next/next/no-img-element
+  if (!svg) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={`/orbis/${orbi}-static.svg`} alt={orbi} className={cn("shrink-0 overflow-visible", className)} style={style} />
+  }
+
   return (
-    <img
-      src={
-        svg
-          ? `data:image/svg+xml;utf8,${encodeURIComponent(tint(svg, orbi, color))}`
-          : url
-      }
-      alt={orbi}
-      width={32}
-      height={32}
-      className={cn("shrink-0 overflow-visible", className)}
+    <span
+      role="img"
+      aria-label={orbi}
+      className={cn("orbi-inline inline-block shrink-0 [&>svg]:size-full [&>svg]:overflow-visible", className)}
       style={style}
+      dangerouslySetInnerHTML={{ __html: color ? tint(svg, orbi, color) : svg }}
     />
   )
 }

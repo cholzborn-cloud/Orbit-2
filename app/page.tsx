@@ -19,7 +19,7 @@ export default function Page() {
       <Empty className="gap-6">
         <EmptyHeader className="gap-3">
           <EmptyMedia>
-            <ChatAvatar seed={crypto.randomUUID()} animated className="size-20" />
+            <ChatAvatar seed={crypto.randomUUID()} className="size-20" />
           </EmptyMedia>
           <EmptyTitle className="text-xl">Dein erster Orbi wartet schon auf dich</EmptyTitle>
           <EmptyDescription className="text-xs">
