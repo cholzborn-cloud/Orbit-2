@@ -39,13 +39,15 @@ const PRESETS = [
   { job: "Tutor", instructions: "Erkläre Schritt für Schritt und prüfe das Verständnis mit kurzen Fragen." },
 ];
 
+const orbiName = (orbi: string) => orbi[0].toUpperCase() + orbi.slice(1);
+
 export function BotDialog({ trigger }: { trigger: React.ReactElement }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const form = useForm<BotFormValues>({
     resolver: zodResolver(botFormSchema),
-    defaultValues: { avatar: "erdi", name: "", ...PRESETS[0] },
+    defaultValues: { avatar: "erdi", name: orbiName("erdi"), ...PRESETS[0] },
   });
   const { errors } = form.formState;
 
@@ -82,7 +84,13 @@ export function BotDialog({ trigger }: { trigger: React.ReactElement }) {
                         type="button"
                         aria-pressed={field.value === orbi}
                         aria-label={orbi}
-                        onClick={() => field.onChange(orbi)}
+                        onClick={() => {
+                          const name = form.getValues("name");
+                          if (!name || name === orbiName(field.value)) {
+                            form.setValue("name", orbiName(orbi), { shouldValidate: true });
+                          }
+                          field.onChange(orbi);
+                        }}
                         className={cn(
                           "flex aspect-square items-center justify-center rounded-lg bg-muted/50 ring-1 ring-foreground/10 transition hover:bg-muted",
                           field.value === orbi && "bg-primary/10 ring-2 ring-primary",
