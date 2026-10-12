@@ -21,14 +21,15 @@ export default function Page() {
               <AvatarFallback>O</AvatarFallback>
             </Avatar>
           </EmptyMedia>
-          <EmptyTitle>Erstelle deinen ersten Orbi</EmptyTitle>
+          <EmptyTitle>Dein erster Orbi wartet schon auf dich</EmptyTitle>
           <EmptyDescription>
             Gib ihm Namen, Farbe und Aufgabe. Danach kannst du direkt loschatten.
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
-          <Button size="icon-lg" className="size-14 rounded-full" aria-label="Orbi erstellen">
-            <PlusIcon />
+          <Button size="lg" className="rounded-full px-5">
+            <PlusIcon data-icon="inline-start" />
+            Erstelle einen neuen Orbi
           </Button>
         </EmptyContent>
       </Empty>
