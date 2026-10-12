@@ -1,13 +1,12 @@
-import { UserButton } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { desc, eq } from "drizzle-orm";
 
+import { UserMenuButton } from "@/components/user-menu-button";
 import { SidebarNav, type SidebarBot } from "@/components/sidebar-nav";
 import {
   Sidebar,
   SidebarFooter,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { db } from "@/lib/db";
@@ -51,26 +50,7 @@ export async function AppSidebar() {
       <SidebarFooter className="shrink-0 px-3 pb-3">
         <SidebarMenu>
           <SidebarMenuItem>
-            {/* div statt button: UserButton rendert selbst einen Button. */}
-            <SidebarMenuButton
-              size="lg"
-              render={<div />}
-              className="relative h-14 rounded-xl group-data-[collapsible=icon]:size-12! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-full"
-            >
-              <UserButton
-                showName
-                appearance={{
-                  elements: {
-                    // order! statt Reihenfolge im DOM: Avatar links, Name rechts.
-                    userButtonBox: "flex-row! gap-3",
-                    // ::after spannt den Trigger über die ganze Zeile (relative am MenuButton).
-                    userButtonTrigger: "order-first! after:absolute after:inset-0 after:cursor-pointer",
-                    userButtonOuterIdentifier:
-                      "order-last! text-sm font-medium text-sidebar-foreground group-data-[collapsible=icon]:hidden",
-                  },
-                }}
-              />
-            </SidebarMenuButton>
+            <UserMenuButton />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
