@@ -31,6 +31,8 @@ export type SidebarBot = {
   job: string;
   instructions: string | null;
   isMain: boolean;
+  lastMessagePreview: string | null;
+  lastMessageAgo: string;
 };
 
 export type SidebarGroupChat = {
@@ -80,7 +82,7 @@ const EASE = "duration-300 ease-[cubic-bezier(.32,.72,0,1)]";
 const ROW =
   "h-14 gap-3 rounded-xl group-data-[collapsible=icon]:size-12! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:rounded-full";
 // Text blendet aus und klappt zu, damit der Avatar mit der Leiste zur Mitte gleitet.
-const LABEL = `flex min-w-0 max-w-40 flex-col leading-tight transition-[max-width,opacity] ${EASE} group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0`;
+const LABEL = `flex min-w-0 max-w-52 flex-1 flex-col leading-tight transition-[max-width,opacity] ${EASE} group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0`;
 
 export function SidebarNav({
   main,
@@ -181,16 +183,21 @@ export function SidebarNav({
           </div>
         )}
 
-        <SidebarGroup className="px-3 py-1">
+        <SidebarGroup className="px-2 py-1">
           <SidebarGroupLabel className="px-2 transition-[height,margin,opacity] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:mt-0 group-data-[collapsible=icon]:h-0 group-data-[collapsible=icon]:overflow-hidden">Chats</SidebarGroupLabel>
           <SidebarMenu className="gap-1">
             {shownBots.map((b) => (
               <SidebarMenuItem key={b.id}>
                 <SidebarMenuButton size="lg" className={ROW} tooltip={b.name}>
-                  <ChatAvatar seed={b.avatar} color={b.color} className="size-10 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)]" />
+                  <ChatAvatar seed={b.avatar} color={b.color} className="size-9 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)]" />
                   <div className={LABEL}>
-                    <span className="truncate font-medium">{b.name}</span>
-                    <span className="truncate text-xs text-muted-foreground">{b.job}</span>
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="truncate font-medium">{b.name}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground">{b.lastMessageAgo}</span>
+                    </div>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {b.lastMessagePreview ?? "Noch keine Nachrichten"}
+                    </span>
                   </div>
                 </SidebarMenuButton>
                 <SidebarMenuAction

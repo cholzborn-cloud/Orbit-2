@@ -1,3 +1,5 @@
+import { formatDistanceToNowStrict } from "date-fns";
+import { de } from "date-fns/locale";
 import { desc, eq } from "drizzle-orm";
 
 import type { SidebarBot } from "@/components/sidebar-nav";
@@ -15,7 +17,7 @@ export async function getSidebarBots(userId: string) {
 
   const all: SidebarBot[] = rows
     .filter((c) => c.kind === "direct" && c.members[0])
-    .map(({ members: [{ bot: b }] }) => ({
+    .map(({ members: [{ bot: b }], lastMessagePreview, lastMessageAt }) => ({
       id: b.id,
       name: b.name,
       avatar: b.avatar as SidebarBot["avatar"],
@@ -23,6 +25,8 @@ export async function getSidebarBots(userId: string) {
       job: b.job,
       instructions: b.instructions,
       isMain: b.isMain,
+      lastMessagePreview,
+      lastMessageAgo: formatDistanceToNowStrict(lastMessageAt, { locale: de }),
     }));
 
   return {
