@@ -16,7 +16,6 @@ import {
   SidebarHeader,
   SidebarInput,
   SidebarMenu,
-  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarTrigger,
@@ -189,7 +188,7 @@ export function SidebarNav({
             {shownBots.map((b) => (
               <SidebarMenuItem key={b.id}>
                 <SidebarMenuButton size="lg" className={ROW} tooltip={b.name}>
-                  <ChatAvatar seed={b.avatar} color={b.color} className="size-9 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)]" />
+                  <ChatAvatar seed={b.avatar} color={b.color} className="size-8 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)]" />
                   <div className={LABEL}>
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="truncate font-medium">{b.name}</span>
@@ -200,14 +199,6 @@ export function SidebarNav({
                     </span>
                   </div>
                 </SidebarMenuButton>
-                <SidebarMenuAction
-                  showOnHover
-                  className="top-1/2! -translate-y-1/2 group-data-[collapsible=icon]:hidden"
-                  onClick={() => setEditing(b)}
-                  aria-label="Bearbeiten"
-                >
-                  <PencilIcon />
-                </SidebarMenuAction>
               </SidebarMenuItem>
             ))}
             {shownBots.length === 0 && (q || !main) && (
