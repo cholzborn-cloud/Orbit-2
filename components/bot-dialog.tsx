@@ -147,6 +147,7 @@ export function BotDialog({ trigger }: { trigger: React.ReactElement }) {
               <Textarea
                 id="bot-instructions"
                 rows={4}
+                className="resize-none"
                 placeholder="Antworte kurz, nenne Quellen und frage nach, bevor du etwas Destruktives tust."
                 {...form.register("instructions")}
               />
