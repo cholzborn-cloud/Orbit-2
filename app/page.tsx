@@ -1,4 +1,5 @@
 import { PlusIcon } from "lucide-react";
+import { BotDialog } from "@/components/bot-dialog";
 import { ChatAvatar } from "@/components/chat-avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,10 +27,14 @@ export default function Page() {
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
-          <Button size="lg" className="rounded-full px-5">
-            <PlusIcon data-icon="inline-start" />
-            Erstelle deinen ersten Orbi
-          </Button>
+          <BotDialog
+            trigger={
+              <Button size="lg" className="rounded-full px-5">
+                <PlusIcon data-icon="inline-start" />
+                Erstelle deinen ersten Orbi
+              </Button>
+            }
+          />
         </EmptyContent>
       </Empty>
     </main>
