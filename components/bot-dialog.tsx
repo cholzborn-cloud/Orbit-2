@@ -125,7 +125,7 @@ export function BotDialog({ trigger }: { trigger: React.ReactElement }) {
                     className={cn(
                       "rounded-full",
                       job === p.job
-                        ? "border-white bg-white text-black hover:bg-white/90 hover:text-black active:bg-white/80"
+                        ? "border-white bg-white text-black hover:bg-white hover:text-black active:bg-white dark:bg-white dark:hover:bg-white dark:active:bg-white"
                         : "dark:bg-transparent dark:hover:bg-white/10 active:bg-white/15",
                     )}
                     onClick={() => {
