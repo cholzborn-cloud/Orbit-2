@@ -106,7 +106,7 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
       <SidebarHeader className="gap-3 p-3 group-data-[collapsible=icon]:items-center">
         <div className="flex items-center justify-between group-data-[collapsible=icon]:justify-center">
           <span className="text-lg font-semibold animate-in fade-in-0 duration-300 group-data-[collapsible=icon]:hidden">Orbit</span>
-          <SidebarTrigger className="rounded-full group-data-[collapsible=icon]:size-10 group-data-[collapsible=icon]:bg-muted" />
+          <SidebarTrigger variant="outline" className="rounded-full transition-colors hover:bg-sidebar-accent dark:hover:bg-sidebar-accent group-data-[collapsible=icon]:size-10" />
         </div>
         <div className="flex items-center gap-2 group-data-[collapsible=icon]:flex-col">
           <SidebarInput
@@ -121,8 +121,8 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
               render={
                 <Button
                   size="icon"
-                  variant="ghost"
-                  className="rounded-full group-data-[collapsible=icon]:size-10 group-data-[collapsible=icon]:bg-muted"
+                  variant="outline"
+                  className="rounded-full transition-colors hover:bg-sidebar-accent dark:hover:bg-sidebar-accent group-data-[collapsible=icon]:size-10"
                   aria-label="Neu erstellen"
                 >
                   <PlusIcon />
