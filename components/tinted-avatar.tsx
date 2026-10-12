@@ -39,7 +39,7 @@ const ACCENTS: Partial<Record<Orbi, { hex: string; ring: boolean }>> = {
 
 function tint(svg: string, orbi: Orbi, color: string) {
   const body = toHsl(color)
-  let out = tint(svg, orbi, color)
+  let out = svg.replaceAll(ORBI_BASE_COLORS[orbi], color)
   const accent = ACCENTS[orbi]
   if (accent && (accent.ring || dist(accent.hex, color) < 110)) {
     const l = body.l > 0.3 ? body.l - 0.2 : body.l + 0.25
