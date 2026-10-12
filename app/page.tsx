@@ -10,13 +10,15 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 
+export const dynamic = "force-dynamic";
+
 export default function Page() {
   return (
     <main className="flex min-h-[calc(100svh-3.5rem)]">
       <Empty className="gap-6">
         <EmptyHeader className="gap-3">
           <EmptyMedia>
-            <ChatAvatar seed="pluti" animated className="size-20" />
+            <ChatAvatar seed={crypto.randomUUID()} animated className="size-20" />
           </EmptyMedia>
           <EmptyTitle className="text-xl">Dein erster Orbi wartet schon auf dich</EmptyTitle>
           <EmptyDescription className="text-xs">
