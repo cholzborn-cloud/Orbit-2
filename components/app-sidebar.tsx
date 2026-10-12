@@ -30,7 +30,14 @@ export async function AppSidebar() {
     }));
   const groups = rows
     .filter((c) => c.kind === "group")
-    .map((c) => ({ id: c.id, name: c.name ?? "Gruppe", members: c.members.length }));
+    .map((c) => ({
+      id: c.id,
+      name: c.name ?? "Gruppe",
+      members: c.members.map((m) => ({
+        avatar: m.bot.avatar as SidebarBot["avatar"],
+        color: m.bot.color,
+      })),
+    }));
 
   return (
     <Sidebar collapsible="icon">
@@ -40,7 +47,7 @@ export async function AppSidebar() {
             elements: {
               userButtonBox: "flex-row-reverse",
               userButtonOuterIdentifier:
-                "transition-opacity group-data-[collapsible=icon]:hidden",
+                "animate-in fade-in-0 duration-300 group-data-[collapsible=icon]:hidden",
             },
           }} />
       </SidebarFooter>

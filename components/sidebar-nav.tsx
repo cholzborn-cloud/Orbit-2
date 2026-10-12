@@ -3,6 +3,8 @@
 import { PencilIcon, PlusIcon, SearchIcon, StarIcon, UsersIcon } from "lucide-react";
 import { useRef, useState } from "react";
 
+import { cn } from "@/lib/utils";
+
 import { BotDialog } from "@/components/bot-dialog";
 import { ChatAvatar } from "@/components/chat-avatar";
 import { GroupDialog } from "@/components/group-dialog";
@@ -32,7 +34,42 @@ export type SidebarBot = {
   isMain: boolean;
 };
 
-export type SidebarGroupChat = { id: string; name: string; members: number };
+export type SidebarGroupChat = {
+  id: string;
+  name: string;
+  members: { avatar: SidebarBot["avatar"]; color: string | null }[];
+};
+
+// Position und Größe (in % der Fläche) der Mitglieder-Avatare, je nach Anzahl.
+const CLUSTER: Record<1 | 2 | 3 | 4, { size: number; at: [number, number][] }> = {
+  1: { size: 100, at: [[0, 0]] },
+  2: { size: 72, at: [[0, 0], [28, 28]] },
+  3: { size: 62, at: [[19, 0], [0, 38], [38, 38]] },
+  4: { size: 58, at: [[0, 0], [42, 0], [0, 42], [42, 42]] },
+};
+
+function GroupAvatar({ members, className }: { members: SidebarGroupChat["members"]; className?: string }) {
+  const shown = members.slice(0, 4);
+  const layout = CLUSTER[Math.max(1, shown.length) as 1 | 2 | 3 | 4];
+  return (
+    <span className={cn("relative block shrink-0", className)}>
+      {shown.map((m, i) => (
+        <ChatAvatar
+          key={i}
+          seed={m.avatar}
+          color={m.color}
+          className="absolute"
+          style={{
+            width: `${layout.size}%`,
+            height: `${layout.size}%`,
+            left: `${layout.at[i][0]}%`,
+            top: `${layout.at[i][1]}%`,
+          }}
+        />
+      ))}
+    </span>
+  );
+}
 
 const EASE = "duration-300 ease-[cubic-bezier(.32,.72,0,1)]";
 const ROW =
@@ -62,7 +99,7 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
     <>
       <SidebarHeader className="gap-3 p-3 group-data-[collapsible=icon]:items-center">
         <div className="flex items-center justify-between group-data-[collapsible=icon]:justify-center">
-          <span className="text-lg font-semibold transition-opacity duration-200 group-data-[collapsible=icon]:hidden">Orbit</span>
+          <span className="text-lg font-semibold animate-in fade-in-0 duration-300 group-data-[collapsible=icon]:hidden">Orbit</span>
           <SidebarTrigger className="rounded-full group-data-[collapsible=icon]:size-10 group-data-[collapsible=icon]:bg-muted" />
         </div>
         <div className="flex items-center gap-2 group-data-[collapsible=icon]:flex-col">
@@ -71,7 +108,7 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
             placeholder="Orbis finden"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="h-9 rounded-full group-data-[collapsible=icon]:hidden"
+            className="h-9 rounded-full animate-in fade-in-0 slide-in-from-left-2 duration-300 group-data-[collapsible=icon]:hidden"
           />
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -100,7 +137,7 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
             variant="outline"
             aria-label="Orbis finden"
             onClick={openSearch}
-            className="hidden rounded-full group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:size-10"
+            className="hidden rounded-full animate-in fade-in-0 zoom-in-90 duration-300 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:size-10"
           >
             <SearchIcon />
           </Button>
@@ -138,7 +175,7 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
             {shownBots.map((b) => (
               <SidebarMenuItem key={b.id}>
                 <SidebarMenuButton size="lg" className={ROW} tooltip={b.name}>
-                  <ChatAvatar seed={b.avatar} color={b.color} className="size-8 group-data-[collapsible=icon]:size-9" />
+                  <ChatAvatar seed={b.avatar} color={b.color} className="size-8 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:size-9" />
                   <div className={LABEL}>
                     <span className="truncate font-medium">{b.name}</span>
                     <span className="truncate text-xs text-muted-foreground">{b.job}</span>
@@ -167,12 +204,10 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
               {shownGroups.map((g) => (
                 <SidebarMenuItem key={g.id}>
                   <SidebarMenuButton size="lg" className={ROW} tooltip={g.name}>
-                    <span className="flex size-8 shrink-0 items-center justify-center group-data-[collapsible=icon]:size-9">
-                      <UsersIcon className="size-5!" />
-                    </span>
+                    <GroupAvatar members={g.members} className="size-8 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:size-9" />
                     <div className={LABEL}>
                       <span className="truncate font-medium">{g.name}</span>
-                      <span className="text-xs text-muted-foreground">{g.members} Orbis</span>
+                      <span className="text-xs text-muted-foreground">{g.members.length} Orbis</span>
                     </div>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

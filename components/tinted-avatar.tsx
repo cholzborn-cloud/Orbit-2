@@ -66,11 +66,13 @@ export function TintedAvatar({
   animated,
   color,
   className,
+  style,
 }: {
   orbi: Orbi
   animated: boolean
   color: string
   className?: string
+  style?: React.CSSProperties
 }) {
   const url = `/orbis/${orbi}${animated ? "" : "-static"}.svg`
   const [svg, setSvg] = useState<string | null>(null)
@@ -95,6 +97,7 @@ export function TintedAvatar({
       width={32}
       height={32}
       className={cn("shrink-0 overflow-visible", className)}
+      style={style}
     />
   )
 }

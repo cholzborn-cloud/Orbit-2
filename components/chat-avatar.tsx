@@ -46,15 +46,17 @@ export function ChatAvatar({
   animated = false,
   color,
   className,
+  style,
 }: {
   seed: string
   animated?: boolean
   color?: string | null
   className?: string
+  style?: React.CSSProperties
 }) {
   const orbi = orbiFromSeed(seed)
   if (color) {
-    return <TintedAvatar orbi={orbi} animated={animated} color={color} className={className} />
+    return <TintedAvatar orbi={orbi} animated={animated} color={color} className={className} style={style} />
   }
   return (
     <Image
@@ -64,6 +66,7 @@ export function ChatAvatar({
       height={32}
       unoptimized
       className={cn("shrink-0 overflow-visible", className)}
+      style={style}
     />
   )
 }
