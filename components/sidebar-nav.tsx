@@ -155,7 +155,7 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
           <div className="group/main relative mx-3 flex flex-col items-center overflow-hidden rounded-2xl bg-sidebar-accent/40 p-4 transition-[padding,background-color] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-0.5">
             <div className="relative size-20 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:size-11">
               <ChatAvatar seed={main.avatar} color={main.color} className="size-full" />
-              <span className="absolute right-[6%] bottom-[10%] flex size-6 items-center justify-center rounded-full bg-black transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:size-4">
+              <span className="absolute right-[4.5%] bottom-[10%] flex size-6 items-center justify-center rounded-full bg-black transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:size-4">
                 <StarIcon className="size-3.5 fill-yellow-400 text-yellow-400 group-data-[collapsible=icon]:size-2.5" />
               </span>
             </div>
