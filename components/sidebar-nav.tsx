@@ -127,7 +127,7 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
                 </Button>
               }
             />
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end" className="w-max">
               <DropdownMenuItem onClick={() => setCreatingBot(true)}>
                 <PlusIcon /> Neuen Bot erstellen
               </DropdownMenuItem>
