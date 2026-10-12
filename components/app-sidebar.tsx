@@ -1,9 +1,8 @@
-import { UserButton } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { desc, eq } from "drizzle-orm";
 
 import { SidebarNav, type SidebarBot } from "@/components/sidebar-nav";
-import { Sidebar, SidebarFooter } from "@/components/ui/sidebar";
+import { Sidebar } from "@/components/ui/sidebar";
 import { db } from "@/lib/db";
 import { chats } from "@/lib/db/schema";
 
@@ -42,15 +41,6 @@ export async function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarNav bots={bots} groups={groups} />
-      <SidebarFooter className="p-3 group-data-[collapsible=icon]:items-center">
-        <UserButton showName appearance={{
-            elements: {
-              userButtonBox: "flex-row-reverse",
-              userButtonOuterIdentifier:
-                "animate-in fade-in-0 duration-300 group-data-[collapsible=icon]:hidden",
-            },
-          }} />
-      </SidebarFooter>
     </Sidebar>
   );
 }
