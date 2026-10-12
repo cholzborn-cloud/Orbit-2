@@ -167,7 +167,7 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
               size="icon-sm"
               variant="ghost"
               aria-label="Hauptbot bearbeiten"
-              className="absolute top-1/2 right-2 -translate-y-1/2 opacity-0 transition-opacity group-hover/main:opacity-100 focus-visible:opacity-100 group-data-[collapsible=icon]:hidden"
+              className="absolute top-2 right-2 opacity-0 transition-opacity group-hover/main:opacity-100 focus-visible:opacity-100 group-data-[collapsible=icon]:hidden"
               onClick={() => setEditing(main)}
             >
               <PencilIcon />
