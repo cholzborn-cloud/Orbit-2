@@ -124,7 +124,9 @@ export function BotDialog({ trigger }: { trigger: React.ReactElement }) {
                     aria-pressed={job === p.job}
                     className={cn(
                       "rounded-full",
-                      job === p.job && "border-white bg-white text-black hover:bg-white/90 hover:text-black",
+                      job === p.job
+                        ? "border-white bg-white text-black hover:bg-white/90 hover:text-black active:bg-white/80"
+                        : "dark:bg-transparent dark:hover:bg-white/10 active:bg-white/15",
                     )}
                     onClick={() => {
                       form.setValue("job", p.job, { shouldValidate: true });
