@@ -65,45 +65,53 @@ function loadSvg(url: string) {
   return p
 }
 
-// Ein globaler Listener: alle Pupillen aller Orbis folgen dem Mauszeiger.
+// Ein globaler Listener: Nur der Orbi, über dem der Zeiger gerade steht, schaut zum Zeiger.
 const MAX_TRAVEL = 3.5 // in SVG-Einheiten, Auge hat r=7, Pupille r=3.5
 let tracking = false
+
+const setPupils = (orbi: Element, t: string) =>
+  orbi.querySelectorAll<SVGElement>(".dbga-pupil").forEach((p) => (p.style.transform = t))
 
 function trackPointer() {
   if (tracking || typeof window === "undefined") return
   tracking = true
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
-  // Beide Pupillen eines Orbis bekommen denselben Versatz (Blick vom Gesichtsmittelpunkt zum Zeiger),
-  // sonst bewegt sich nahe am Orbi scheinbar nur ein Auge.
-  // Aktualisiert wird in jedem Frame (Bildschirmrate), nicht nur bei Mausereignissen: so bleibt der Blick
-  // auch beim Scrollen und Hüpfen exakt am Zeiger und es gibt keine Verzögerung.
-  let x = -1, y = -1, seen = false
+
+  let hovered: Element | null = null
+  let x = 0, y = 0, raf = 0
+
+  // Pro Frame (Bildschirmrate) und mit gleichem Versatz für beide Pupillen vom Gesichtsmittelpunkt aus.
+  const frame = () => {
+    if (!hovered) return void (raf = 0)
+    const r = hovered.getBoundingClientRect()
+    const dx = x - (r.left + r.width / 2)
+    const dy = y - (r.top + r.height / 2)
+    const d = Math.hypot(dx, dy) || 1
+    const k = (Math.min(1, d / (r.width / 2)) * MAX_TRAVEL) / d
+    setPupils(hovered, `translate(${dx * k}px, ${dy * k}px)`)
+    raf = requestAnimationFrame(frame)
+  }
+
+  const leave = () => {
+    if (hovered) setPupils(hovered, "")
+    hovered = null
+  }
+
   window.addEventListener(
     "pointermove",
     (e) => {
       x = e.clientX
       y = e.clientY
-      seen = true
+      const next = e.target instanceof Element ? e.target.closest(".orbi-inline") : null
+      if (next !== hovered) {
+        leave()
+        hovered = next
+      }
+      if (hovered && !raf) raf = requestAnimationFrame(frame)
     },
     { passive: true },
   )
-  const frame = () => {
-    if (seen) {
-      document.querySelectorAll<HTMLElement>(".orbi-inline").forEach((orbi) => {
-        const r = orbi.getBoundingClientRect()
-        const dx = x - (r.left + r.width / 2)
-        const dy = y - (r.top + r.height / 2)
-        const d = Math.hypot(dx, dy) || 1
-        const k = (Math.min(1, d / 60) * MAX_TRAVEL) / d
-        const t = `translate(${dx * k}px, ${dy * k}px)`
-        orbi.querySelectorAll<SVGElement>(".dbga-pupil").forEach((pupil) => {
-          pupil.style.transform = t
-        })
-      })
-    }
-    requestAnimationFrame(frame)
-  }
-  requestAnimationFrame(frame)
+  document.addEventListener("pointerleave", leave)
 }
 
 export function TintedAvatar({
