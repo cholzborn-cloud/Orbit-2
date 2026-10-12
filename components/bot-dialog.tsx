@@ -40,6 +40,8 @@ const PRESETS = [
   { job: "Planen", instructions: "Teile Aufgaben in kleine Schritte und setze klare Prioritäten." },
 ];
 
+const COLORS = ["#ef4444", "#f97316", "#facc15", "#22c55e", "#14b8a6", "#3b82f6", "#8b5cf6", "#ec4899", "#94a3b8"];
+
 const orbiName = (orbi: string) => orbi[0].toUpperCase() + orbi.slice(1);
 
 export function BotDialog({ trigger }: { trigger: React.ReactElement }) {
@@ -109,24 +111,36 @@ export function BotDialog({ trigger }: { trigger: React.ReactElement }) {
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="bot-color">Farbe</FieldLabel>
+              <FieldLabel>Farbe</FieldLabel>
               <div className="flex items-center gap-2">
-                <input
-                  id="bot-color"
-                  type="color"
-                  value={color ?? ORBI_BASE_COLORS[avatar]}
-                  onChange={(e) => form.setValue("color", e.target.value)}
-                  className="h-9 w-14 cursor-pointer rounded-lg border border-input bg-transparent p-1"
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={!color}
-                  onClick={() => form.setValue("color", null)}
+                <label
+                  aria-label="Eigene Farbe wählen"
+                  className={cn(
+                    "relative size-6 shrink-0 cursor-pointer rounded-full bg-[conic-gradient(red,yellow,lime,aqua,blue,magenta,red)]",
+                    color && !COLORS.includes(color) && "ring-2 ring-white ring-offset-2 ring-offset-background",
+                  )}
                 >
-                  Original
-                </Button>
+                  <input
+                    type="color"
+                    value={color ?? ORBI_BASE_COLORS[avatar]}
+                    onChange={(e) => form.setValue("color", e.target.value)}
+                    className="absolute inset-0 size-full cursor-pointer opacity-0"
+                  />
+                </label>
+                {COLORS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    aria-label={c}
+                    aria-pressed={color === c}
+                    onClick={() => form.setValue("color", c)}
+                    style={{ backgroundColor: c }}
+                    className={cn(
+                      "size-6 shrink-0 rounded-full",
+                      color === c && "ring-2 ring-white ring-offset-2 ring-offset-background",
+                    )}
+                  />
+                ))}
               </div>
             </Field>
 
