@@ -189,14 +189,14 @@ export function SidebarNav({
               <SidebarMenuItem key={b.id}>
                 <SidebarMenuButton size="lg" className={ROW} tooltip={b.name}>
                   <ChatAvatar seed={b.avatar} color={b.color} className="size-7 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)]" />
-                  <div className={LABEL}>
-                    <div className="flex items-baseline justify-between gap-2">
+                  <div className={cn(LABEL, "flex-row items-start gap-2")}>
+                    <div className="flex min-w-0 flex-1 flex-col">
                       <span className="truncate font-medium">{b.name}</span>
-                      <span className="shrink-0 text-xs text-muted-foreground">{b.lastMessageAgo}</span>
+                      <span className="truncate text-xs text-muted-foreground">
+                        {b.lastMessagePreview ?? "Noch keine Nachrichten"}
+                      </span>
                     </div>
-                    <span className="truncate text-xs text-muted-foreground">
-                      {b.lastMessagePreview ?? "Noch keine Nachrichten"}
-                    </span>
+                    <span className="shrink-0 pt-0.5 text-xs text-muted-foreground">{b.lastMessageAgo}</span>
                   </div>
                 </SidebarMenuButton>
               </SidebarMenuItem>
