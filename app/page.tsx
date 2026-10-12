@@ -8,8 +8,8 @@ import { db } from "@/lib/db";
 import { todos } from "@/lib/db/schema";
 
 export default async function Page() {
-  const { userId } = await auth();
-  const items = userId
+  const { isAuthenticated, userId } = await auth();
+  const items = isAuthenticated
     ? await db.select().from(todos).where(eq(todos.userId, userId)).orderBy(asc(todos.id))
     : [];
 
@@ -17,7 +17,7 @@ export default async function Page() {
     <main className="mx-auto flex min-h-[calc(100svh-3.5rem)] w-full max-w-xl flex-col px-6 py-16">
       <p className="text-sm font-medium text-muted-foreground">A little at a time</p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight">Today&apos;s todos</h1>
-      {userId ? (
+      {isAuthenticated ? (
         <>
           <form action={addTodo} className="mt-8 flex gap-2">
             <input
