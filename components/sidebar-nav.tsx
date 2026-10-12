@@ -114,15 +114,15 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
             placeholder="Orbis finden"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="h-9 rounded-full animate-in fade-in-0 slide-in-from-left-2 duration-300 group-data-[collapsible=icon]:hidden"
+            className="h-9 rounded-full animate-in fade-in-0 slide-in-from-left-2 duration-300 group-data-[collapsible=icon]:hidden transition-all hover:-translate-y-px hover:bg-sidebar-accent hover:shadow-lg hover:ring-2 hover:ring-primary/60"
           />
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
                 <Button
                   size="icon"
-                  variant="outline"
-                  className="rounded-full group-data-[collapsible=icon]:size-10"
+                  variant="ghost"
+                  className="rounded-full group-data-[collapsible=icon]:size-10 group-data-[collapsible=icon]:bg-muted"
                   aria-label="Neu erstellen"
                 >
                   <PlusIcon />
@@ -143,7 +143,7 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
             variant="outline"
             aria-label="Orbis finden"
             onClick={openSearch}
-            className="hidden rounded-full animate-in fade-in-0 zoom-in-90 duration-300 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:size-10"
+            className="hidden rounded-full animate-in fade-in-0 zoom-in-90 duration-300 transition-all hover:scale-110 hover:bg-primary hover:text-primary-foreground hover:shadow-lg group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:size-10"
           >
             <SearchIcon />
           </Button>
@@ -152,7 +152,7 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
 
       <SidebarContent className="gap-1">
         {main && (!q || match(main.name)) && (
-          <div className="group/main relative mx-3 flex flex-col items-center overflow-hidden rounded-2xl bg-sidebar-accent/40 p-4 transition-[padding,background-color] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-0.5">
+          <div className="group/main relative mx-3 flex flex-col items-center overflow-hidden rounded-2xl p-4 hover:bg-sidebar-accent/40 transition-[padding,background-color] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:hover:bg-transparent group-data-[collapsible=icon]:p-0.5">
             <div className="relative size-20 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:size-11">
               <ChatAvatar seed={main.avatar} color={main.color} className="size-full" />
               <span className="absolute right-[4.5%] bottom-[10%] flex size-6 items-center justify-center rounded-full bg-black transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:size-4">
