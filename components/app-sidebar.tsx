@@ -33,10 +33,16 @@ export async function AppSidebar() {
     .map((c) => ({ id: c.id, name: c.name ?? "Gruppe", members: c.members.length }));
 
   return (
-    <Sidebar>
+    <Sidebar collapsible="icon">
       <SidebarNav bots={bots} groups={groups} />
-      <SidebarFooter className="p-3">
-        <UserButton showName appearance={{ elements: { userButtonBox: "flex-row-reverse" } }} />
+      <SidebarFooter className="p-3 group-data-[collapsible=icon]:items-center">
+        <UserButton showName appearance={{
+            elements: {
+              userButtonBox: "flex-row-reverse",
+              userButtonOuterIdentifier:
+                "transition-opacity group-data-[collapsible=icon]:hidden",
+            },
+          }} />
       </SidebarFooter>
     </Sidebar>
   );

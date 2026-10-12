@@ -40,7 +40,7 @@ export default function RootLayout({
               <SidebarProvider>
                 <AppSidebar />
                 <SidebarInset>
-                  <header className="flex h-14 items-center px-4 group-has-[[data-state=expanded]]/sidebar-wrapper:md:hidden">
+                  <header className="flex h-14 items-center px-4 md:hidden">
                     <SidebarTrigger />
                   </header>
                   {children}
