@@ -1,7 +1,6 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -37,7 +36,6 @@ const PRESETS = [
   { job: "Texte", instructions: "Verbessere Texte, ohne den Stil des Autors zu ändern." },
   { job: "Lernen", instructions: "Erkläre Schritt für Schritt und prüfe das Verständnis mit kurzen Fragen." },
   { job: "Übersetzen", instructions: "Übersetze natürlich und treffend. Frage bei Mehrdeutigkeit nach." },
-  { job: "Zusammenfassen", instructions: "Fasse in wenigen Stichpunkten zusammen. Nur das Wichtigste." },
   { job: "Ideen", instructions: "Liefere viele kreative Ideen, kurz und konkret. Dann die beste empfehlen." },
   { job: "Planen", instructions: "Teile Aufgaben in kleine Schritte und setze klare Prioritäten." },
 ];
@@ -96,14 +94,11 @@ export function BotDialog({ trigger }: { trigger: React.ReactElement }) {
                           field.onChange(orbi);
                         }}
                         className={cn(
-                          "relative flex aspect-square items-center justify-center rounded-lg bg-muted/50 ring-1 ring-foreground/10 transition hover:bg-muted",
+                          "flex aspect-square items-center justify-center rounded-lg bg-muted/50 ring-1 ring-foreground/10 transition hover:bg-muted",
                           field.value === orbi && "bg-primary/20 ring-2 ring-primary",
                         )}
                       >
                         <ChatAvatar seed={orbi} className="size-9" />
-                        {field.value === orbi && (
-                          <CheckIcon className="absolute top-1 right-1 size-4 rounded-full bg-primary p-0.5 text-primary-foreground" />
-                        )}
                       </button>
                     ))}
                   </div>
@@ -119,21 +114,23 @@ export function BotDialog({ trigger }: { trigger: React.ReactElement }) {
 
             <Field data-invalid={!!errors.job}>
               <FieldLabel htmlFor="bot-job">Aufgabe</FieldLabel>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="grid grid-cols-3 gap-1.5">
                 {PRESETS.map((p) => (
                   <Button
                     key={p.job}
                     type="button"
                     size="sm"
-                    variant={job === p.job ? "default" : "outline"}
+                    variant="outline"
                     aria-pressed={job === p.job}
-                    className="rounded-full"
+                    className={cn(
+                      "w-full rounded-full px-2",
+                      job === p.job && "border-foreground bg-foreground text-background hover:bg-foreground/90 hover:text-background",
+                    )}
                     onClick={() => {
                       form.setValue("job", p.job, { shouldValidate: true });
                       form.setValue("instructions", p.instructions);
                     }}
                   >
-                    {job === p.job && <CheckIcon data-icon="inline-start" />}
                     {p.job}
                   </Button>
                 ))}
