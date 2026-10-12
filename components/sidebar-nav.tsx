@@ -168,7 +168,7 @@ export function SidebarNav({
             </div>
             <div className="mt-2 flex max-h-12 flex-col items-center gap-0.5 transition-[max-height,margin,opacity] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:mt-0 group-data-[collapsible=icon]:max-h-0 group-data-[collapsible=icon]:opacity-0">
               <span className="font-semibold leading-tight">{main.name}</span>
-              <span className="text-xs leading-tight text-muted-foreground">Hauptbot</span>
+              <span className="text-xs leading-tight text-muted-foreground">Hauptbot · {main.job}</span>
             </div>
             <Button
               size="icon-sm"
