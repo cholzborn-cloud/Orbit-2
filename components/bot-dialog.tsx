@@ -114,7 +114,7 @@ export function BotDialog({ trigger }: { trigger: React.ReactElement }) {
 
             <Field data-invalid={!!errors.job}>
               <FieldLabel htmlFor="bot-job">Aufgabe</FieldLabel>
-              <div className="grid grid-cols-3 gap-1.5">
+              <div className="flex flex-wrap justify-between gap-1.5">
                 {PRESETS.map((p) => (
                   <Button
                     key={p.job}
@@ -123,7 +123,7 @@ export function BotDialog({ trigger }: { trigger: React.ReactElement }) {
                     variant="outline"
                     aria-pressed={job === p.job}
                     className={cn(
-                      "w-full rounded-full px-2",
+                      "rounded-full",
                       job === p.job && "border-foreground bg-foreground text-background hover:bg-foreground/90 hover:text-background",
                     )}
                     onClick={() => {
