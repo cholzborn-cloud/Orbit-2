@@ -176,7 +176,7 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
         )}
 
         <SidebarGroup className="px-3 py-1">
-          <SidebarGroupLabel className="px-2 transition-[height,margin,opacity] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:mt-0 group-data-[collapsible=icon]:h-0 group-data-[collapsible=icon]:overflow-hidden">Orbis</SidebarGroupLabel>
+          <SidebarGroupLabel className="px-2 transition-[height,margin,opacity] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:mt-0 group-data-[collapsible=icon]:h-0 group-data-[collapsible=icon]:overflow-hidden">Chats</SidebarGroupLabel>
           <SidebarMenu className="gap-1">
             {shownBots.map((b) => (
               <SidebarMenuItem key={b.id}>
