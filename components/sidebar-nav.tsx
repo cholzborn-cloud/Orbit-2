@@ -81,7 +81,7 @@ const EASE = "duration-300 ease-[cubic-bezier(.32,.72,0,1)]";
 const ROW =
   "h-14 gap-3 rounded-xl group-data-[collapsible=icon]:size-12! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:rounded-full";
 // Text blendet aus und klappt zu, damit der Avatar mit der Leiste zur Mitte gleitet.
-const LABEL = `flex min-w-0 max-w-64 flex-1 flex-col leading-tight transition-[max-width,opacity] ${EASE} group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0`;
+const LABEL = `flex min-w-0 max-w-full flex-1 flex-col leading-tight transition-[max-width,opacity] ${EASE} group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0`;
 
 export function SidebarNav({
   main,
