@@ -1,5 +1,5 @@
 import { PlusIcon } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ChatAvatar } from "@/components/chat-avatar";
 import { Button } from "@/components/ui/button";
 import {
   Empty,
@@ -16,10 +16,7 @@ export default function Page() {
       <Empty className="gap-6">
         <EmptyHeader className="gap-3">
           <EmptyMedia>
-            <Avatar className="size-20">
-              <AvatarImage src="/favicon.ico" alt="Orbi" />
-              <AvatarFallback>O</AvatarFallback>
-            </Avatar>
+            <ChatAvatar seed="pluti" animated className="size-20" />
           </EmptyMedia>
           <EmptyTitle className="text-xl">Dein erster Orbi wartet schon auf dich</EmptyTitle>
           <EmptyDescription className="text-xs">
