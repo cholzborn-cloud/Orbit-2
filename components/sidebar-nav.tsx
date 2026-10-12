@@ -106,7 +106,7 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
       <SidebarHeader className="gap-3 p-3 group-data-[collapsible=icon]:items-center">
         <div className="flex items-center justify-between group-data-[collapsible=icon]:justify-center">
           <span className="text-lg font-semibold animate-in fade-in-0 duration-300 group-data-[collapsible=icon]:hidden">Orbit</span>
-          <SidebarTrigger variant="outline" className="rounded-full transition-colors hover:bg-sidebar-accent dark:hover:bg-sidebar-accent group-data-[collapsible=icon]:size-10" />
+          <SidebarTrigger className="rounded-full transition-colors hover:bg-sidebar-accent dark:hover:bg-sidebar-accent group-data-[collapsible=icon]:size-10 group-data-[collapsible=icon]:bg-muted" />
         </div>
         <div className="flex items-center gap-2 group-data-[collapsible=icon]:flex-col">
           <SidebarInput
