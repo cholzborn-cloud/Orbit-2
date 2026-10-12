@@ -21,7 +21,7 @@ export default function Page() {
               <AvatarFallback>O</AvatarFallback>
             </Avatar>
           </EmptyMedia>
-          <EmptyTitle>Dein erster Orbi wartet schon auf dich</EmptyTitle>
+          <EmptyTitle>Mach’s, erstelle deinen ersten Orbit.</EmptyTitle>
           <EmptyDescription>
             Gib ihm Namen, Farbe und Aufgabe. Danach kannst du direkt loschatten.
           </EmptyDescription>
