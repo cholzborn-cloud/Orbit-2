@@ -1,11 +1,13 @@
 import { auth } from "@clerk/nextjs/server";
 import { desc, eq } from "drizzle-orm";
 
+import { SidebarCreateMenu } from "@/components/sidebar-create-menu";
 import { UserMenuButton } from "@/components/user-menu-button";
 import { SidebarNav, type SidebarBot } from "@/components/sidebar-nav";
 import {
   Sidebar,
   SidebarFooter,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
@@ -46,6 +48,9 @@ export async function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
+      <SidebarHeader className="flex-row justify-end">
+        <SidebarCreateMenu />
+      </SidebarHeader>
       <SidebarNav bots={bots} groups={groups} />
       <SidebarFooter className="shrink-0 px-3 pb-3">
         <SidebarMenu>
