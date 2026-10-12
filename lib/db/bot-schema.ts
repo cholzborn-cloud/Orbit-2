@@ -8,6 +8,7 @@ export const insertBotSchema = createInsertSchema(bots, {
   name: (s) => s.trim().min(1, "Gib deinem Orbi einen Namen").max(40),
   job: (s) => s.trim().min(1, "Gib deinem Orbi eine Aufgabe").max(60),
   avatar: z.enum(ORBIS),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable(),
   instructions: (s) => s.trim().max(1000),
 });
 
@@ -15,6 +16,7 @@ export const insertBotSchema = createInsertSchema(bots, {
 export const botFormSchema = insertBotSchema.pick({
   name: true,
   avatar: true,
+  color: true,
   job: true,
   instructions: true,
 });

@@ -13,6 +13,7 @@ export const bots = pgTable(
     avatar: text("avatar")
       .notNull()
       .$defaultFn(() => nanoid()),
+    color: text("color"),
     job: text("job").notNull(),
     instructions: text("instructions"),
     sandboxId: text("sandbox_id"),

@@ -6,7 +6,7 @@ import { useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { createBot } from "@/actions/bot";
-import { ChatAvatar, ORBIS } from "@/components/chat-avatar";
+import { ChatAvatar, ORBIS, ORBI_BASE_COLORS } from "@/components/chat-avatar";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -48,10 +48,12 @@ export function BotDialog({ trigger }: { trigger: React.ReactElement }) {
   const [pending, startTransition] = useTransition();
   const form = useForm<BotFormValues>({
     resolver: zodResolver(botFormSchema),
-    defaultValues: { avatar: "erdi", name: orbiName("erdi"), ...PRESETS[0] },
+    defaultValues: { avatar: "erdi", color: null, name: orbiName("erdi"), ...PRESETS[0] },
   });
   const { errors } = form.formState;
   const job = form.watch("job");
+  const avatar = form.watch("avatar");
+  const color = form.watch("color");
 
   const onSubmit = form.handleSubmit((values) =>
     startTransition(async () => {
@@ -98,12 +100,34 @@ export function BotDialog({ trigger }: { trigger: React.ReactElement }) {
                           field.value === orbi && "bg-primary/20 ring-2 ring-primary",
                         )}
                       >
-                        <ChatAvatar seed={orbi} className="size-9" />
+                        <ChatAvatar seed={orbi} color={field.value === orbi ? color : null} className="size-9" />
                       </button>
                     ))}
                   </div>
                 )}
               />
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="bot-color">Farbe</FieldLabel>
+              <div className="flex items-center gap-2">
+                <input
+                  id="bot-color"
+                  type="color"
+                  value={color ?? ORBI_BASE_COLORS[avatar]}
+                  onChange={(e) => form.setValue("color", e.target.value)}
+                  className="h-9 w-14 cursor-pointer rounded-lg border border-input bg-transparent p-1"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={!color}
+                  onClick={() => form.setValue("color", null)}
+                >
+                  Original
+                </Button>
+              </div>
             </Field>
 
             <Field data-invalid={!!errors.name}>
