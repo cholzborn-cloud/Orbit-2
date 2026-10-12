@@ -188,7 +188,7 @@ export function SidebarNav({
             {shownBots.map((b) => (
               <SidebarMenuItem key={b.id}>
                 <SidebarMenuButton size="lg" className={ROW} tooltip={b.name}>
-                  <ChatAvatar seed={b.avatar} color={b.color} className="size-8 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)]" />
+                  <ChatAvatar seed={b.avatar} color={b.color} className="size-7 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)]" />
                   <div className={LABEL}>
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="truncate font-medium">{b.name}</span>
