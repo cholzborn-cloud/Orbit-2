@@ -160,7 +160,7 @@ export function SidebarNav({
       <SidebarContent className="gap-1">
         {main && (!q || match(main.name)) && (
           <div className="group/main relative mx-3 flex flex-col items-center overflow-hidden rounded-2xl bg-sidebar-accent/40 p-4 hover:bg-sidebar-accent transition-[padding,background-color] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:hover:bg-transparent group-data-[collapsible=icon]:p-0.5">
-            <div className="relative size-20 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:size-11">
+            <div className="relative size-14 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:size-11">
               <ChatAvatar seed={main.avatar} color={main.color} className="size-full" />
               <span className="absolute right-[4.5%] bottom-[10%] flex size-6 items-center justify-center rounded-full bg-black transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:size-4">
                 <StarIcon className="size-3.5 fill-yellow-400 text-yellow-400 group-data-[collapsible=icon]:size-2.5" />
@@ -168,7 +168,7 @@ export function SidebarNav({
             </div>
             <div className="mt-2 flex max-h-12 flex-col items-center gap-0.5 transition-[max-height,margin,opacity] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:mt-0 group-data-[collapsible=icon]:max-h-0 group-data-[collapsible=icon]:opacity-0">
               <span className="font-semibold leading-tight">{main.name}</span>
-              <span className="text-xs leading-tight text-muted-foreground">Hauptbot · {main.job}</span>
+              <span className="text-xs leading-tight text-muted-foreground">Hauptorbi · {main.job}</span>
             </div>
             <Button
               size="icon-sm"
