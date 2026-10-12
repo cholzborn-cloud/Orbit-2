@@ -5,7 +5,8 @@ export default function DashboardLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <SidebarProvider>
+    {/* Zugeklappt, sonst liegt die leere Sidebar (fixed) über der Sidebar aus dem Root-Layout. */}
+    <SidebarProvider defaultOpen={false}>
       <DashboardSidebar />
       <SidebarInset>{children}</SidebarInset>
     </SidebarProvider>
