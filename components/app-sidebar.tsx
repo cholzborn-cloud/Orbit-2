@@ -1,8 +1,15 @@
+import { UserButton } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { desc, eq } from "drizzle-orm";
 
 import { SidebarNav, type SidebarBot } from "@/components/sidebar-nav";
-import { Sidebar } from "@/components/ui/sidebar";
+import {
+  Sidebar,
+  SidebarFooter,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
 import { db } from "@/lib/db";
 import { chats } from "@/lib/db/schema";
 
@@ -41,6 +48,31 @@ export async function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarNav bots={bots} groups={groups} />
+      <SidebarFooter className="px-3 pb-3">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            {/* div statt button: UserButton rendert selbst einen Button. */}
+            <SidebarMenuButton
+              size="lg"
+              render={<div />}
+              className="h-14 rounded-xl group-data-[collapsible=icon]:size-12! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:rounded-full"
+            >
+              <UserButton
+                showName
+                appearance={{
+                  elements: {
+                    userButtonBox: "w-full flex-row-reverse justify-end gap-3",
+                    userButtonTrigger: "w-full rounded-xl focus-visible:shadow-none",
+                    userButtonAvatarBox: "size-10",
+                    userButtonOuterIdentifier:
+                      "m-0 max-w-40 truncate p-0 text-sm font-medium text-sidebar-foreground transition-[max-width,opacity] duration-300 group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0",
+                  },
+                }}
+              />
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   );
 }
