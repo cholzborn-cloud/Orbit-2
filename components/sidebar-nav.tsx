@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 
 import { BotDialog } from "@/components/bot-dialog";
 import { ChatAvatar } from "@/components/chat-avatar";
-import { GroupDialog } from "@/components/group-dialog";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
@@ -86,7 +85,6 @@ const LABEL = `flex min-w-0 max-w-40 flex-col leading-tight transition-[max-widt
 export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: SidebarGroupChat[] }) {
   const [query, setQuery] = useState("");
   const [creatingBot, setCreatingBot] = useState(false);
-  const [creatingGroup, setCreatingGroup] = useState(false);
   const [editing, setEditing] = useState<SidebarBot | null>(null);
   const { setOpen } = useSidebar();
   const searchRef = useRef<HTMLInputElement>(null);
@@ -131,10 +129,11 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
             />
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setCreatingBot(true)}>
-                <PlusIcon /> Neuer Orbi
+                <PlusIcon /> Neuen Bot erstellen
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setCreatingGroup(true)}>
-                <UsersIcon /> Neue Gruppe
+              {/* Öffnet bewusst nichts. */}
+              <DropdownMenuItem>
+                <UsersIcon /> Gruppe erstellen
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -232,7 +231,6 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
           bot={{ ...editing, instructions: editing.instructions ?? "" }}
         />
       )}
-      <GroupDialog bots={bots} open={creatingGroup} onOpenChange={setCreatingGroup} />
     </>
   );
 }
