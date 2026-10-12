@@ -111,7 +111,7 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
         <div className="flex items-center gap-2 group-data-[collapsible=icon]:flex-col">
           <SidebarInput
             ref={searchRef}
-            placeholder="Orbis finden"
+            placeholder="Suche"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="h-9 rounded-full animate-in fade-in-0 slide-in-from-left-2 duration-300 group-data-[collapsible=icon]:hidden transition-all hover:-translate-y-px hover:bg-sidebar-accent hover:shadow-lg hover:ring-2 hover:ring-primary/60"
@@ -141,7 +141,7 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
           <Button
             size="icon"
             variant="outline"
-            aria-label="Orbis finden"
+            aria-label="Suche"
             onClick={openSearch}
             className="hidden rounded-full animate-in fade-in-0 zoom-in-90 duration-300 transition-all hover:scale-110 hover:bg-primary hover:text-primary-foreground hover:shadow-lg group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:size-10"
           >
