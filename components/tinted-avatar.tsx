@@ -50,6 +50,10 @@ function tint(svg: string, orbi: Orbi, color: string) {
   return out
 }
 
+// Die Planeten füllen nur ~68 % der Fläche; zuschneiden, damit sie klein genauso gut zu sehen sind.
+// Ringe und Hüpfen ragen weiter über den Rand (overflow: visible).
+const crop = (svg: string) => svg.replace('viewBox="0 0 100 100"', 'viewBox="10 10 80 80"')
+
 const cache = new Map<string, Promise<string>>()
 
 function loadSvg(url: string) {
@@ -62,7 +66,7 @@ function loadSvg(url: string) {
 }
 
 // Ein globaler Listener: alle Pupillen aller Orbis folgen dem Mauszeiger.
-const MAX_TRAVEL = 3.2 // in SVG-Einheiten, Auge hat r=7, Pupille r=3.5
+const MAX_TRAVEL = 3.5 // in SVG-Einheiten, Auge hat r=7, Pupille r=3.5
 let tracking = false
 
 function trackPointer() {
@@ -116,7 +120,7 @@ export function TintedAvatar({
       aria-label={orbi}
       className={cn("orbi-inline inline-block shrink-0 [&>svg]:size-full [&>svg]:overflow-visible", className)}
       style={style}
-      dangerouslySetInnerHTML={{ __html: color ? tint(svg, orbi, color) : svg }}
+      dangerouslySetInnerHTML={{ __html: crop(color ? tint(svg, orbi, color) : svg) }}
     />
   )
 }

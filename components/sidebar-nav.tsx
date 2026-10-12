@@ -46,7 +46,7 @@ const CLUSTER: Record<1 | 2 | 3 | 4 | 5, { size: number; at: [number, number][] 
   2: { size: 72, at: [[0, 0], [28, 28]] },
   3: { size: 62, at: [[19, 0], [0, 38], [38, 38]] },
   4: { size: 58, at: [[0, 0], [42, 0], [0, 42], [42, 42]] },
-  5: { size: 52, at: [[0, 0], [48, 0], [0, 48], [48, 48], [24, 24]] },
+  5: { size: 42, at: [[8, 0], [50, 0], [0, 54], [29, 54], [58, 54]] },
 };
 
 function GroupAvatar({ members, className }: { members: SidebarGroupChat["members"]; className?: string }) {
@@ -79,7 +79,7 @@ function GroupAvatar({ members, className }: { members: SidebarGroupChat["member
 
 const EASE = "duration-300 ease-[cubic-bezier(.32,.72,0,1)]";
 const ROW =
-  "h-12 gap-3 rounded-xl group-data-[collapsible=icon]:size-12! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:rounded-full";
+  "h-14 gap-3 rounded-xl group-data-[collapsible=icon]:size-12! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:rounded-full";
 // Text blendet aus und klappt zu, damit der Avatar mit der Leiste zur Mitte gleitet.
 const LABEL = `flex min-w-0 max-w-40 flex-col leading-tight transition-[max-width,opacity] ${EASE} group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0`;
 
@@ -155,7 +155,7 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
           <div className="group/main relative mx-3 flex flex-col items-center overflow-hidden rounded-2xl bg-sidebar-accent/40 p-4 transition-[padding,background-color] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-0.5">
             <div className="relative size-20 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:size-11">
               <ChatAvatar seed={main.avatar} color={main.color} className="size-full" />
-              <span className="absolute right-[10%] bottom-[10%] flex size-6 items-center justify-center rounded-full bg-black transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:size-4">
+              <span className="absolute right-[5%] bottom-[5%] flex size-6 items-center justify-center rounded-full bg-black transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:size-4">
                 <StarIcon className="size-3.5 fill-yellow-400 text-yellow-400 group-data-[collapsible=icon]:size-2.5" />
               </span>
             </div>
@@ -176,12 +176,12 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
         )}
 
         <SidebarGroup className="px-3 py-1">
-          <SidebarGroupLabel className="px-2">Orbis</SidebarGroupLabel>
+          <SidebarGroupLabel className="px-2 transition-[height,margin,opacity] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:mt-0 group-data-[collapsible=icon]:h-0 group-data-[collapsible=icon]:overflow-hidden">Orbis</SidebarGroupLabel>
           <SidebarMenu className="gap-1">
             {shownBots.map((b) => (
               <SidebarMenuItem key={b.id}>
                 <SidebarMenuButton size="lg" className={ROW} tooltip={b.name}>
-                  <ChatAvatar seed={b.avatar} color={b.color} className="size-8 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:size-9" />
+                  <ChatAvatar seed={b.avatar} color={b.color} className="size-10 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)]" />
                   <div className={LABEL}>
                     <span className="truncate font-medium">{b.name}</span>
                     <span className="truncate text-xs text-muted-foreground">{b.job}</span>
@@ -205,12 +205,12 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
 
         {shownGroups.length > 0 && (
           <SidebarGroup className="px-3 py-1">
-            <SidebarGroupLabel className="px-2">Gruppen</SidebarGroupLabel>
+            <SidebarGroupLabel className="px-2 transition-[height,margin,opacity] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:mt-0 group-data-[collapsible=icon]:h-0 group-data-[collapsible=icon]:overflow-hidden">Gruppen</SidebarGroupLabel>
             <SidebarMenu className="gap-1">
               {shownGroups.map((g) => (
                 <SidebarMenuItem key={g.id}>
                   <SidebarMenuButton size="lg" className={ROW} tooltip={g.name}>
-                    <GroupAvatar members={g.members} className="size-8 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:size-9" />
+                    <GroupAvatar members={g.members} className="size-10 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)]" />
                     <div className={LABEL}>
                       <span className="truncate font-medium">{g.name}</span>
                       <span className="text-xs text-muted-foreground">{g.members.length} Orbis</span>
