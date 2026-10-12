@@ -71,6 +71,9 @@ export const chatMembers = pgTable(
     botId: text("bot_id")
       .notNull()
       .references(() => bots.id, { onDelete: "cascade" }),
+    joinedAt: timestamp("joined_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     primaryKey({ columns: [table.chatId, table.botId] }),
