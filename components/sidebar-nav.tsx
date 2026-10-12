@@ -82,7 +82,15 @@ const ROW =
 // Text blendet aus und klappt zu, damit der Avatar mit der Leiste zur Mitte gleitet.
 const LABEL = `flex min-w-0 max-w-40 flex-col leading-tight transition-[max-width,opacity] ${EASE} group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0`;
 
-export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: SidebarGroupChat[] }) {
+export function SidebarNav({
+  main,
+  bots,
+  groups = [],
+}: {
+  main: SidebarBot | null;
+  bots: SidebarBot[];
+  groups?: SidebarGroupChat[];
+}) {
   const [query, setQuery] = useState("");
   const [creatingBot, setCreatingBot] = useState(false);
   const [editing, setEditing] = useState<SidebarBot | null>(null);
@@ -95,9 +103,8 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
 
   const q = query.trim().toLowerCase();
   const match = (s: string) => s.toLowerCase().includes(q);
-  const shownBots = bots.filter((b) => !b.isMain && (match(b.name) || match(b.job)));
+  const shownBots = bots.filter((b) => match(b.name) || match(b.job));
   const shownGroups = groups.filter((g) => match(g.name));
-  const main = bots.find((b) => b.isMain);
 
   return (
     <>
