@@ -75,19 +75,35 @@ function trackPointer() {
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
   // Beide Pupillen eines Orbis bekommen denselben Versatz (Blick vom Gesichtsmittelpunkt zum Zeiger),
   // sonst bewegt sich nahe am Orbi scheinbar nur ein Auge.
-  const update = (x: number, y: number) => {
-    document.querySelectorAll<HTMLElement>(".orbi-inline").forEach((orbi) => {
-      const r = orbi.getBoundingClientRect()
-      const dx = x - (r.left + r.width / 2)
-      const dy = y - (r.top + r.height / 2)
-      const d = Math.hypot(dx, dy) || 1
-      const k = (Math.min(1, d / 60) * MAX_TRAVEL) / d
-      orbi.querySelectorAll<SVGElement>(".dbga-pupil").forEach((pupil) => {
-        pupil.style.transform = `translate(${dx * k}px, ${dy * k}px)`
+  // Aktualisiert wird in jedem Frame (Bildschirmrate), nicht nur bei Mausereignissen: so bleibt der Blick
+  // auch beim Scrollen und Hüpfen exakt am Zeiger und es gibt keine Verzögerung.
+  let x = -1, y = -1, seen = false
+  window.addEventListener(
+    "pointermove",
+    (e) => {
+      x = e.clientX
+      y = e.clientY
+      seen = true
+    },
+    { passive: true },
+  )
+  const frame = () => {
+    if (seen) {
+      document.querySelectorAll<HTMLElement>(".orbi-inline").forEach((orbi) => {
+        const r = orbi.getBoundingClientRect()
+        const dx = x - (r.left + r.width / 2)
+        const dy = y - (r.top + r.height / 2)
+        const d = Math.hypot(dx, dy) || 1
+        const k = (Math.min(1, d / 60) * MAX_TRAVEL) / d
+        const t = `translate(${dx * k}px, ${dy * k}px)`
+        orbi.querySelectorAll<SVGElement>(".dbga-pupil").forEach((pupil) => {
+          pupil.style.transform = t
+        })
       })
-    })
+    }
+    requestAnimationFrame(frame)
   }
-  window.addEventListener("pointermove", (e) => update(e.clientX, e.clientY), { passive: true })
+  requestAnimationFrame(frame)
 }
 
 export function TintedAvatar({

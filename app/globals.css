@@ -136,6 +136,3 @@
 .orbi-inline .dbga-pupil {
   animation: none !important;
 }
-.orbi-inline .dbga-pupil {
-  transition: transform 80ms linear;
-}
