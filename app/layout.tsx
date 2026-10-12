@@ -1,8 +1,10 @@
-import { ClerkProvider, Show, UserButton } from "@clerk/nextjs"
+import { ClerkProvider } from "@clerk/nextjs"
 import { shadcn } from "@clerk/ui/themes"
 import { Geist, Geist_Mono } from "next/font/google"
 
 import "./globals.css"
+import { AppSidebar } from "@/components/app-sidebar"
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { ThemeProvider } from "@/components/theme-provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/toast"
@@ -35,12 +37,15 @@ export default function RootLayout({
         <ClerkProvider appearance={{ theme: shadcn }}>
           <ThemeProvider>
             <TooltipProvider>
-              <header className="flex h-14 items-center justify-end gap-2 px-6">
-                <Show when="signed-in">
-                  <UserButton />
-                </Show>
-              </header>
-              {children}
+              <SidebarProvider>
+                <AppSidebar />
+                <SidebarInset>
+                  <header className="flex h-14 items-center px-4 group-has-[[data-state=expanded]]/sidebar-wrapper:md:hidden">
+                    <SidebarTrigger />
+                  </header>
+                  {children}
+                </SidebarInset>
+              </SidebarProvider>
               <Toaster />
             </TooltipProvider>
           </ThemeProvider>

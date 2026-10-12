@@ -17,6 +17,7 @@ export const botFormSchema = insertBotSchema.pick({
   name: true,
   avatar: true,
   color: true,
+  isMain: true,
   job: true,
   instructions: true,
 });

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 
-import { createBot } from "@/actions/bot";
+import { createBot, updateBot } from "@/actions/bot";
 import { ChatAvatar, ORBIS, ORBI_BASE_COLORS } from "@/components/chat-avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +25,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { botFormSchema, type BotFormValues } from "@/lib/db/bot-schema";
 import { cn } from "@/lib/utils";
@@ -46,13 +47,27 @@ const DOT_SELECTED = "ring-2 ring-white ring-offset-2 ring-offset-popover";
 
 const orbiName = (orbi: string) => orbi[0].toUpperCase() + orbi.slice(1);
 
-export function BotDialog({ trigger }: { trigger: React.ReactElement }) {
+export type EditableBot = BotFormValues & { id: string };
+
+export function BotDialog({
+  trigger,
+  bot,
+  open: openProp,
+  onOpenChange,
+}: {
+  trigger?: React.ReactElement;
+  bot?: EditableBot;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const open = openProp ?? openState;
+  const setOpen = onOpenChange ?? setOpenState;
   const [pending, startTransition] = useTransition();
   const form = useForm<BotFormValues>({
     resolver: zodResolver(botFormSchema),
-    defaultValues: { avatar: "erdi", color: null, name: orbiName("erdi"), ...PRESETS[0] },
+    defaultValues: bot ?? { avatar: "erdi", color: null, isMain: false, name: orbiName("erdi"), ...PRESETS[0] },
   });
   const { errors } = form.formState;
   const job = form.watch("job");
@@ -61,20 +76,20 @@ export function BotDialog({ trigger }: { trigger: React.ReactElement }) {
 
   const onSubmit = form.handleSubmit((values) =>
     startTransition(async () => {
-      const res = await createBot(values);
+      const res = bot ? await updateBot(bot.id, values) : await createBot(values);
       if (!res.ok) return form.setError("root", { message: res.error });
       setOpen(false);
-      form.reset();
+      if (!bot) form.reset();
       router.refresh();
     }),
   );
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={trigger} />
+      {trigger && <DialogTrigger render={trigger} />}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Neuer Orbi</DialogTitle>
+          <DialogTitle>{bot ? "Orbi bearbeiten" : "Neuer Orbi"}</DialogTitle>
           <DialogDescription>Gib ihm ein Gesicht, einen Namen und eine Aufgabe.</DialogDescription>
         </DialogHeader>
         <form id="bot-form" onSubmit={onSubmit} className="-mx-2 max-h-[60svh] overflow-y-auto px-2 py-1">
@@ -201,6 +216,16 @@ export function BotDialog({ trigger }: { trigger: React.ReactElement }) {
               />
               <FieldError errors={[errors.instructions]} />
             </Field>
+            <Field orientation="horizontal">
+              <Controller
+                control={form.control}
+                name="isMain"
+                render={({ field }) => (
+                  <Switch id="bot-main" checked={!!field.value} onCheckedChange={field.onChange} />
+                )}
+              />
+              <FieldLabel htmlFor="bot-main">Hauptbot (koordiniert die anderen Orbis, mit Stern)</FieldLabel>
+            </Field>
             <FieldError>{errors.root?.message}</FieldError>
           </FieldGroup>
         </form>
@@ -209,7 +234,7 @@ export function BotDialog({ trigger }: { trigger: React.ReactElement }) {
             Abbrechen
           </Button>
           <Button type="submit" form="bot-form" disabled={pending}>
-            Orbi erstellen
+            {bot ? "Speichern" : "Orbi erstellen"}
           </Button>
         </DialogFooter>
       </DialogContent>
