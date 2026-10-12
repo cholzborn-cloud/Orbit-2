@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { CheckIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -95,11 +96,14 @@ export function BotDialog({ trigger }: { trigger: React.ReactElement }) {
                           field.onChange(orbi);
                         }}
                         className={cn(
-                          "flex aspect-square items-center justify-center rounded-lg bg-muted/50 ring-1 ring-foreground/10 transition hover:bg-muted",
-                          field.value === orbi && "bg-primary/10 ring-2 ring-primary",
+                          "relative flex aspect-square items-center justify-center rounded-lg bg-muted/50 ring-1 ring-foreground/10 transition hover:bg-muted",
+                          field.value === orbi && "bg-primary/20 ring-2 ring-primary",
                         )}
                       >
                         <ChatAvatar seed={orbi} className="size-9" />
+                        {field.value === orbi && (
+                          <CheckIcon className="absolute top-1 right-1 size-4 rounded-full bg-primary p-0.5 text-primary-foreground" />
+                        )}
                       </button>
                     ))}
                   </div>
@@ -121,13 +125,15 @@ export function BotDialog({ trigger }: { trigger: React.ReactElement }) {
                     key={p.job}
                     type="button"
                     size="sm"
-                    variant={job === p.job ? "secondary" : "outline"}
+                    variant={job === p.job ? "default" : "outline"}
+                    aria-pressed={job === p.job}
                     className="rounded-full"
                     onClick={() => {
                       form.setValue("job", p.job, { shouldValidate: true });
                       form.setValue("instructions", p.instructions);
                     }}
                   >
+                    {job === p.job && <CheckIcon data-icon="inline-start" />}
                     {p.job}
                   </Button>
                 ))}
