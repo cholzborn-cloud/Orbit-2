@@ -224,7 +224,7 @@ export function BotDialog({
                   <Switch id="bot-main" checked={!!field.value} onCheckedChange={field.onChange} />
                 )}
               />
-              <FieldLabel htmlFor="bot-main">Hauptbot (koordiniert die anderen Orbis, mit Stern)</FieldLabel>
+              <FieldLabel htmlFor="bot-main">Hauptbot</FieldLabel>
             </Field>
             <FieldError>{errors.root?.message}</FieldError>
           </FieldGroup>

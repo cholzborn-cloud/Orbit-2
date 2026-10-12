@@ -41,7 +41,7 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
 
   const q = query.trim().toLowerCase();
   const match = (s: string) => s.toLowerCase().includes(q);
-  const shownBots = bots.filter((b) => match(b.name) || match(b.job));
+  const shownBots = bots.filter((b) => !b.isMain && (match(b.name) || match(b.job)));
   const shownGroups = groups.filter((g) => match(g.name));
   const main = bots.find((b) => b.isMain);
 
@@ -80,7 +80,7 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
       </SidebarHeader>
 
       <SidebarContent>
-        {main && !q && (
+        {main && (!q || match(main.name)) && (
           <div className="group/main relative mx-3 flex flex-col items-center gap-1 rounded-2xl bg-sidebar-accent/40 p-5">
             <div className="relative">
               <ChatAvatar seed={main.avatar} color={main.color} animated className="size-20" />
@@ -111,7 +111,7 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
                   <ChatAvatar seed={b.avatar} color={b.color} className="size-8" />
                   <div className="flex min-w-0 flex-col leading-tight">
                     <span className="truncate font-medium">
-                      {b.name} {b.isMain && <StarIcon className="inline size-3 fill-yellow-400 text-yellow-400" />}
+                      {b.name}
                     </span>
                     <span className="truncate text-xs text-muted-foreground">{b.job}</span>
                   </div>
@@ -121,7 +121,7 @@ export function SidebarNav({ bots, groups }: { bots: SidebarBot[]; groups: Sideb
                 </SidebarMenuAction>
               </SidebarMenuItem>
             ))}
-            {shownBots.length === 0 && <p className="px-2 text-xs text-muted-foreground">Keine Orbis gefunden.</p>}
+            {shownBots.length === 0 && (q || !main) && <p className="px-2 text-xs text-muted-foreground">Keine Orbis gefunden.</p>}
           </SidebarMenu>
         </SidebarGroup>
 
