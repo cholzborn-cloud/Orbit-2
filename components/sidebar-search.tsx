@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Kbd } from "@/components/ui/kbd";
-import { useSidebar } from "@/components/ui/sidebar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 // Gruppenchats werden vorerst ignoriert: je Chat zählt der Avatar des ersten Bots.
 export function SidebarSearch({
@@ -31,9 +31,9 @@ export function SidebarSearch({
   onQueryChange: (query: string) => void;
 }) {
   const router = useRouter();
-  const { setOpen: setSidebarOpen } = useSidebar();
   const inputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
+  const [popoverOpen, setPopoverOpen] = useState(false);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -46,6 +46,34 @@ export function SidebarSearch({
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, []);
+
+  const palette = (
+    <>
+        <CommandInput placeholder="Suche…" />
+        <CommandList>
+          <CommandEmpty>Keine Chats gefunden.</CommandEmpty>
+          <CommandGroup heading="Chats">
+            {chats.map((c) => (
+              <CommandItem
+                key={c.chatId}
+                value={`${c.name} ${c.lastMessagePreview ?? ""} ${c.chatId}`}
+                onSelect={() => {
+                  setOpen(false);
+                  setPopoverOpen(false);
+                  router.push(`/chats/${c.chatId}`);
+                }}
+              >
+                <ChatAvatar seed={c.avatar} color={c.color} className="size-6" />
+                <span className="shrink-0 font-medium">{c.name}</span>
+                <span className="truncate text-xs text-muted-foreground">
+                  {c.lastMessagePreview ?? "Noch keine Nachrichten"}
+                </span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </CommandList>
+    </>
+  );
 
   return (
     <>
@@ -61,45 +89,29 @@ export function SidebarSearch({
         />
         <Kbd className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2">⌘K</Kbd>
       </div>
-      <Button
-        type="button"
-        size="icon-sm"
-        variant="ghost"
-        aria-label="Suche"
-        onClick={() => {
-          // Eingeklappt: Leiste öffnen und ins Feld springen.
-          setSidebarOpen(true);
-          setTimeout(() => inputRef.current?.focus(), 320);
-        }}
-        className="hidden rounded-full transition-colors hover:bg-sidebar-accent dark:hover:bg-sidebar-accent group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:size-10"
-      >
-        <SearchIcon />
-      </Button>
+      {/* Eingeklappt: Seitenleiste bleibt zu, nur eine Suchleiste klappt daneben auf. */}
+      <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+        <PopoverTrigger
+          render={
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="ghost"
+              aria-label="Suche"
+              className="hidden rounded-full transition-colors hover:bg-sidebar-accent dark:hover:bg-sidebar-accent group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:size-10"
+            />
+          }
+        >
+          <SearchIcon />
+        </PopoverTrigger>
+        <PopoverContent side="right" align="start" className="w-80 p-0">
+          <Command>{palette}</Command>
+        </PopoverContent>
+      </Popover>
       <CommandDialog open={open} onOpenChange={setOpen} title="Suche" description="Chats durchsuchen">
         {/* cmdk braucht den Command-Kontext, CommandDialog liefert ihn hier nicht. */}
         <Command>
-        <CommandInput placeholder="Suche…" />
-        <CommandList>
-          <CommandEmpty>Keine Chats gefunden.</CommandEmpty>
-          <CommandGroup heading="Chats">
-            {chats.map((c) => (
-              <CommandItem
-                key={c.chatId}
-                value={`${c.name} ${c.lastMessagePreview ?? ""} ${c.chatId}`}
-                onSelect={() => {
-                  setOpen(false);
-                  router.push(`/chats/${c.chatId}`);
-                }}
-              >
-                <ChatAvatar seed={c.avatar} color={c.color} className="size-6" />
-                <span className="shrink-0 font-medium">{c.name}</span>
-                <span className="truncate text-xs text-muted-foreground">
-                  {c.lastMessagePreview ?? "Noch keine Nachrichten"}
-                </span>
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        </CommandList>
+        {palette}
         </Command>
       </CommandDialog>
     </>

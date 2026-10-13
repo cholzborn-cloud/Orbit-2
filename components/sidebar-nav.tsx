@@ -1,6 +1,7 @@
 "use client";
 
 import { PencilIcon, PlusIcon, StarIcon, UsersIcon } from "lucide-react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 
@@ -129,7 +130,7 @@ export function SidebarNav({
             />
             <DropdownMenuContent align="end" className="w-max">
               <DropdownMenuItem onClick={() => setCreatingBot(true)}>
-                <PlusIcon /> Neuen Bot erstellen
+                <PlusIcon /> Neuen Orbi erstellen
               </DropdownMenuItem>
               {/* Öffnet bewusst nichts. */}
               <DropdownMenuItem>
@@ -149,15 +150,19 @@ export function SidebarNav({
                 <StarIcon className="size-3 fill-yellow-400 text-yellow-400 group-data-[collapsible=icon]:size-2" />
               </span>
             </div>
-            <div className="mt-2 flex max-h-12 flex-col items-center gap-0.5 transition-[max-height,margin,opacity] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:mt-0 group-data-[collapsible=icon]:max-h-0 group-data-[collapsible=icon]:opacity-0">
+            <div className="mt-2 flex max-h-24 w-full flex-col items-center gap-0.5 transition-[max-height,margin,opacity] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:mt-0 group-data-[collapsible=icon]:max-h-0 group-data-[collapsible=icon]:opacity-0">
               <span className="font-semibold leading-tight">{main.name}</span>
-              <span className="text-xs leading-tight text-muted-foreground">Hauptorbi · {main.job}</span>
+              <div className="mt-1 flex w-full min-w-0 flex-col items-center gap-0.5 text-xs text-muted-foreground">
+                <span className="w-full truncate text-center">{main.lastMessagePreview ?? "Noch keine Nachrichten"}</span>
+                <span>{main.lastMessageAgo}</span>
+              </div>
             </div>
+            <Link href={`/chats/${main.chatId}`} aria-label={main.name} className="absolute inset-0 rounded-2xl group-data-[collapsible=icon]:rounded-full" />
             <Button
               size="icon-sm"
               variant="ghost"
               aria-label="Hauptbot bearbeiten"
-              className="absolute top-2 right-2 opacity-0 transition-opacity group-hover/main:opacity-100 focus-visible:opacity-100 group-data-[collapsible=icon]:hidden"
+              className="absolute top-2 right-2 z-10 opacity-0 transition-opacity group-hover/main:opacity-100 focus-visible:opacity-100 group-data-[collapsible=icon]:hidden"
               onClick={() => setEditing(main)}
             >
               <PencilIcon />
@@ -174,7 +179,7 @@ export function SidebarNav({
           <SidebarMenu className="gap-1 group-data-[collapsible=icon]:items-center">
             {shownBots.map((b) => (
               <SidebarMenuItem key={b.id}>
-                <SidebarMenuButton size="lg" className={cn(ROW, "group-has-data-[sidebar=menu-action]/menu-item:pr-2")} tooltip={b.name} isActive={b.chatId === activeChatId}>
+                <SidebarMenuButton render={<Link href={`/chats/${b.chatId}`} />} size="lg" className={cn(ROW, "group-has-data-[sidebar=menu-action]/menu-item:pr-2")} tooltip={b.name} isActive={b.chatId === activeChatId}>
                   <ChatAvatar seed={b.avatar} color={b.color} className="size-7 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)]" />
                   <div className={cn(LABEL, "flex-row items-start gap-2")}>
                     <div className="flex min-w-0 flex-1 flex-col">
