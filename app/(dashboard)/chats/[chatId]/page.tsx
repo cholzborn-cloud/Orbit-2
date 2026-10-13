@@ -2,8 +2,9 @@ import { auth } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
 
 import type { EditableBot } from "@/components/bot-dialog";
-import { ChatComposer } from "@/components/chat-composer";
+import { Chat } from "@/components/chat";
 import { ChatHeader } from "@/components/chat-header";
+import { getAvailableModels } from "@/lib/chat-models";
 import { getChat } from "@/query/chat";
 
 export default async function ChatPage({
@@ -21,7 +22,7 @@ export default async function ChatPage({
   if (!chat || !bot) notFound();
 
   return (
-    <div className="flex-1">
+    <>
       <ChatHeader
         bot={{
           id: bot.id,
@@ -33,6 +34,7 @@ export default async function ChatPage({
           isMain: bot.isMain,
         }}
       />
-    </div>
+      <Chat key={chatId} models={await getAvailableModels()} />
+    </>
   );
 }

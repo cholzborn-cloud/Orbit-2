@@ -136,3 +136,57 @@
 .orbi-inline .dbga-pupil {
   animation: none !important;
 }
+
+/* Modell-Auswahl: Höchste Denktiefe (Max). Champagner-Gold mit langsam wandernder Lichtkante. */
+@keyframes effort-shimmer {
+  0% {
+    background-position: 120% 0;
+  }
+  100% {
+    background-position: -120% 0;
+  }
+}
+@keyframes effort-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(232 199 122 / 0), 0 0 6px rgb(232 199 122 / 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgb(232 199 122 / 0.14), 0 0 12px rgb(232 199 122 / 0.6);
+  }
+}
+.effort-gold {
+  background: linear-gradient(
+    110deg,
+    #b08d4a 0%,
+    #c9a45c 30%,
+    #fff4d6 46%,
+    #f3d58f 54%,
+    #c9a45c 70%,
+    #b08d4a 100%
+  );
+  background-size: 250% 100%;
+  animation: effort-shimmer 3.2s ease-in-out infinite;
+}
+.effort-gold-text {
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+.effort-max [data-slot="slider-range"] {
+  background: linear-gradient(110deg, #b08d4a 0%, #c9a45c 30%, #fff4d6 46%, #f3d58f 54%, #c9a45c 70%, #b08d4a 100%);
+  background-size: 250% 100%;
+  animation: effort-shimmer 3.2s ease-in-out infinite;
+}
+.effort-max [data-slot="slider-thumb"] {
+  border-color: #e8c77a;
+  animation: effort-glow 3.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .effort-gold,
+  .effort-max [data-slot="slider-range"],
+  .effort-max [data-slot="slider-thumb"] {
+    animation: none;
+  }
+}

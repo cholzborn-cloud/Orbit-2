@@ -82,7 +82,7 @@ function GroupAvatar({ members, className }: { members: SidebarGroupChat["member
 
 const EASE = "duration-300 ease-[cubic-bezier(.32,.72,0,1)]";
 const ROW =
-  "h-14 data-active:font-normal hover:bg-sidebar-accent/60 data-active:hover:bg-sidebar-accent gap-3 rounded-xl group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:rounded-full";
+  "h-14 data-active:font-normal hover:bg-sidebar-accent/60 data-active:hover:bg-sidebar-accent/70 gap-3 rounded-xl group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:rounded-full";
 // Text blendet aus und klappt zu, damit der Avatar mit der Leiste zur Mitte gleitet.
 const LABEL = `flex min-w-0 max-w-full flex-1 flex-col leading-tight transition-[max-width,opacity] ${EASE} group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0`;
 
