@@ -1,6 +1,6 @@
 "use client";
 
-import { PencilIcon, PlusIcon, StarIcon, UsersIcon } from "lucide-react";
+import { PlusIcon, StarIcon, UsersIcon } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
@@ -18,7 +18,6 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
@@ -83,7 +82,7 @@ function GroupAvatar({ members, className }: { members: SidebarGroupChat["member
 
 const EASE = "duration-300 ease-[cubic-bezier(.32,.72,0,1)]";
 const ROW =
-  "h-14 hover:bg-sidebar-accent/60 data-active:hover:bg-sidebar-accent gap-3 rounded-xl group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:rounded-full";
+  "h-14 data-active:font-normal hover:bg-sidebar-accent/60 data-active:hover:bg-sidebar-accent gap-3 rounded-xl group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:rounded-full";
 // Text blendet aus und klappt zu, damit der Avatar mit der Leiste zur Mitte gleitet.
 const LABEL = `flex min-w-0 max-w-full flex-1 flex-col leading-tight transition-[max-width,opacity] ${EASE} group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0`;
 
@@ -97,7 +96,6 @@ export function SidebarNav({
   groups?: SidebarGroupChat[];
 }) {
   const [creatingBot, setCreatingBot] = useState(false);
-  const [editing, setEditing] = useState<SidebarBot | null>(null);
   // Aktiver Chat aus der Route /chats/:chatId.
   const { chatId: activeChatId } = useParams<{ chatId?: string }>();
   const [query, setQuery] = useState("");
@@ -143,7 +141,7 @@ export function SidebarNav({
 
       <SidebarContent className="gap-1">
         {main && (!q || match(main.name)) && (
-          <div className={cn("group/main relative mx-3 flex flex-col items-center overflow-hidden rounded-2xl bg-sidebar-accent/40 p-4 hover:bg-sidebar-accent/70 transition-[padding,background-color] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:hover:bg-transparent group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0", main.chatId === activeChatId && "bg-sidebar-accent group-data-[collapsible=icon]:bg-sidebar-accent group-data-[collapsible=icon]:hover:bg-sidebar-accent")}>
+          <div className={cn("relative mx-3 flex flex-col items-center overflow-hidden rounded-2xl bg-sidebar-accent/40 p-4 hover:bg-sidebar-accent/70 transition-[padding,background-color] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:hover:bg-transparent group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0", main.chatId === activeChatId && "bg-sidebar-accent group-data-[collapsible=icon]:bg-sidebar-accent group-data-[collapsible=icon]:hover:bg-sidebar-accent")}>
             <div className="relative size-16 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:size-7">
               <ChatAvatar seed={main.avatar} color={main.color} className="size-full" />
               <span className="absolute right-[4.5%] bottom-[7%] flex size-5 items-center justify-center rounded-full bg-black transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:-right-0.5 group-data-[collapsible=icon]:-bottom-0.5 group-data-[collapsible=icon]:size-3">
@@ -158,15 +156,6 @@ export function SidebarNav({
               </div>
             </div>
             <Link href={`/chats/${main.chatId}`} aria-label={main.name} className="absolute inset-0 rounded-2xl group-data-[collapsible=icon]:rounded-full" />
-            <Button
-              size="icon-sm"
-              variant="ghost"
-              aria-label="Hauptbot bearbeiten"
-              className="absolute top-2 right-2 z-10 opacity-0 transition-opacity group-hover/main:opacity-100 focus-visible:opacity-100 group-data-[collapsible=icon]:hidden"
-              onClick={() => setEditing(main)}
-            >
-              <PencilIcon />
-            </Button>
           </div>
         )}
 
@@ -179,7 +168,7 @@ export function SidebarNav({
           <SidebarMenu className="gap-1 group-data-[collapsible=icon]:items-center">
             {shownBots.map((b) => (
               <SidebarMenuItem key={b.id}>
-                <SidebarMenuButton render={<Link href={`/chats/${b.chatId}`} />} size="lg" className={cn(ROW, "group-has-data-[sidebar=menu-action]/menu-item:pr-2")} tooltip={b.name} isActive={b.chatId === activeChatId}>
+                <SidebarMenuButton render={<Link href={`/chats/${b.chatId}`} />} size="lg" className={ROW} tooltip={b.name} isActive={b.chatId === activeChatId}>
                   <ChatAvatar seed={b.avatar} color={b.color} className="size-7 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)]" />
                   <div className={cn(LABEL, "flex-row items-start gap-2")}>
                     <div className="flex min-w-0 flex-1 flex-col">
@@ -188,18 +177,9 @@ export function SidebarNav({
                         {b.lastMessagePreview ?? "Noch keine Nachrichten"}
                       </span>
                     </div>
-                    <span className="shrink-0 pt-0.5 text-xs text-muted-foreground transition-opacity group-focus-within/menu-item:opacity-0 group-hover/menu-item:opacity-0">{b.lastMessageAgo}</span>
+                    <span className="shrink-0 pt-0.5 text-xs text-muted-foreground">{b.lastMessageAgo}</span>
                   </div>
                 </SidebarMenuButton>
-                {/* Beim Hover ersetzt das Stift-Icon die Zeit, mittig rechts. */}
-                <SidebarMenuAction
-                  showOnHover
-                  className="top-1/2! right-2 -translate-y-1/2 group-data-[collapsible=icon]:hidden"
-                  onClick={() => setEditing(b)}
-                  aria-label="Bearbeiten"
-                >
-                  <PencilIcon />
-                </SidebarMenuAction>
               </SidebarMenuItem>
             ))}
             {shownBots.length === 0 && (q || !main) && (
@@ -232,14 +212,6 @@ export function SidebarNav({
       </SidebarContent>
 
       <BotDialog open={creatingBot} onOpenChange={setCreatingBot} />
-      {editing && (
-        <BotDialog
-          key={editing.id}
-          open
-          onOpenChange={(o) => !o && setEditing(null)}
-          bot={{ ...editing, instructions: editing.instructions ?? "" }}
-        />
-      )}
     </>
   );
 }

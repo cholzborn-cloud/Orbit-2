@@ -21,7 +21,7 @@ export default async function ChatPage({
   if (!chat || !bot) notFound();
 
   return (
-    <div className="flex min-h-svh flex-col">
+    <div className="flex-1">
       <ChatHeader
         bot={{
           id: bot.id,
@@ -33,8 +33,6 @@ export default async function ChatPage({
           isMain: bot.isMain,
         }}
       />
-      <div className="flex-1" />
-      <ChatComposer />
     </div>
   );
 }
