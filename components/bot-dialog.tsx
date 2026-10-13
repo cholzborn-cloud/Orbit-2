@@ -65,12 +65,16 @@ export function BotDialog({
   bot,
   open: openProp,
   onOpenChange,
+  onClearHistory,
 }: {
   trigger?: React.ReactElement;
   bot?: EditableBot;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  // Nur im Chat gesetzt: leert den Verlauf, der Orbi bleibt.
+  onClearHistory?: () => void;
 }) {
+  const [confirmingClear, setConfirmingClear] = useState(false);
   const router = useRouter();
   const [openState, setOpenState] = useState(false);
   const open = openProp ?? openState;
@@ -276,6 +280,11 @@ export function BotDialog({
               Löschen
             </Button>
           )}
+          {onClearHistory && (
+            <Button type="button" variant="outline" disabled={pending} onClick={() => setConfirmingClear(true)}>
+              Verlauf leeren
+            </Button>
+          )}
           <Button type="button" variant="outline" onClick={() => setOpen(false)}>
             Abbrechen
           </Button>
@@ -296,6 +305,30 @@ export function BotDialog({
             <AlertDialogCancel disabled={pending}>Abbrechen</AlertDialogCancel>
             <Button type="button" variant="destructive" disabled={pending} onClick={onDelete}>
               Endgültig löschen
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={confirmingClear} onOpenChange={setConfirmingClear}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Verlauf mit {bot?.name} leeren?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Alle Nachrichten dieses Chats werden gelöscht. Der Orbi bleibt erhalten.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => {
+                onClearHistory?.();
+                setConfirmingClear(false);
+                setOpen(false);
+              }}
+            >
+              Verlauf leeren
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

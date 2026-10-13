@@ -29,7 +29,7 @@ export const ORBI_BASE_COLORS: Record<(typeof ORBIS)[number], string> = {
 
 export type Orbi = (typeof ORBIS)[number]
 
-function orbiFromSeed(seed: string): Orbi {
+export function orbiFromSeed(seed: string): Orbi {
   const name = seed.toLowerCase()
   const exact = ORBIS.find((orbi) => orbi === name)
   if (exact) return exact

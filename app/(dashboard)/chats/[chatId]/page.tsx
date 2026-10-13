@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 
 import type { EditableBot } from "@/components/bot-dialog";
 import { Chat } from "@/components/chat";
-import { ChatHeader } from "@/components/chat-header";
 import { getAvailableModels } from "@/lib/chat-models";
 import { getChat } from "@/query/chat";
 
@@ -22,19 +21,23 @@ export default async function ChatPage({
   if (!chat || !bot) notFound();
 
   return (
-    <>
-      <ChatHeader
-        bot={{
-          id: bot.id,
-          name: bot.name,
-          avatar: bot.avatar as EditableBot["avatar"],
-          color: bot.color,
-          job: bot.job,
-          instructions: bot.instructions ?? "",
-          isMain: bot.isMain,
-        }}
-      />
-      <Chat key={chatId} models={await getAvailableModels()} />
-    </>
+    <Chat
+      key={chatId}
+      chatId={chatId}
+      models={await getAvailableModels()}
+      avatar={bot.avatar}
+      color={bot.color}
+      bot={{
+        id: bot.id,
+        name: bot.name,
+        avatar: bot.avatar as EditableBot["avatar"],
+        color: bot.color,
+        job: bot.job,
+        instructions: bot.instructions ?? "",
+        isMain: bot.isMain,
+      }}
+      // Kopfzeile zeigt alle Mitglieder als Dots (max. 3 plus "+N").
+      dots={chat.members.map((m) => ({ avatar: m.bot.avatar, color: m.bot.color }))}
+    />
   );
 }

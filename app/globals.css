@@ -190,3 +190,35 @@
     animation: none;
   }
 }
+
+/* Chat: Schreib-Punkte, nur transform/opacity, damit sie mit der Bildschirmrate (60/120 Hz) laufen. */
+@keyframes typing-dot {
+  0%,
+  60%,
+  100% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.35;
+  }
+  30% {
+    transform: translate3d(0, -3px, 0);
+    opacity: 1;
+  }
+}
+.typing-dot {
+  animation: typing-dot 1.2s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+@media (prefers-reduced-motion: reduce) {
+  .typing-dot {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
+/* Chat-Eingabe: kein heller Fokus-Rahmen. */
+.chat-prompt [data-slot="input-group"],
+.chat-prompt [data-slot="input-group"]:focus-within {
+  border-color: var(--input) !important;
+  box-shadow: none !important;
+  outline: none !important;
+}

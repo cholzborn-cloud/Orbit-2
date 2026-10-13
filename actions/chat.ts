@@ -33,3 +33,18 @@ export async function createGroup(
   revalidatePath("/");
   return { ok: true, id };
 }
+
+// Nur die Vorschau (letzte Nachricht) für die Seitenleiste, nicht den Verlauf.
+export async function updateChatPreview(chatId: string, text: string) {
+  const { userId } = await auth();
+  if (!userId) return;
+
+  const preview = text.replace(/\s+/g, " ").trim().slice(0, 140);
+  if (!preview) return;
+
+  await db
+    .update(chats)
+    .set({ lastMessagePreview: preview, lastMessageAt: new Date() })
+    .where(and(eq(chats.id, chatId), eq(chats.userId, userId)));
+  revalidatePath("/", "layout");
+}
