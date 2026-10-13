@@ -17,7 +17,8 @@ export async function getSidebarBots(userId: string) {
 
   const all: SidebarBot[] = rows
     .filter((c) => c.kind === "direct" && c.members[0])
-    .map(({ members: [{ bot: b }], lastMessagePreview, lastMessageAt }) => ({
+    .map(({ id: chatId, members: [{ bot: b }], lastMessagePreview, lastMessageAt }) => ({
+      chatId,
       id: b.id,
       name: b.name,
       avatar: b.avatar as SidebarBot["avatar"],

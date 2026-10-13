@@ -10,7 +10,7 @@ export function UserMenuButton() {
     <SidebarMenuButton
       size="lg"
       render={<div />}
-      className="h-14 cursor-pointer rounded-xl group-data-[collapsible=icon]:size-12! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-full"
+      className="h-14 cursor-pointer rounded-xl group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-full"
       onClick={(e) => {
         const trigger = e.currentTarget.querySelector("button");
         if (trigger && !trigger.contains(e.target as Node)) trigger.click();

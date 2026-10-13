@@ -7,6 +7,7 @@ import {
   SidebarFooter,
   SidebarMenu,
   SidebarMenuItem,
+  SidebarRail,
 } from "@/components/ui/sidebar";
 import { getSidebarBots } from "@/query/bot";
 
@@ -20,12 +21,13 @@ export async function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarNav main={main} bots={bots} />
       <SidebarFooter className="shrink-0 px-3 pb-3">
-        <SidebarMenu>
+        <SidebarMenu className="group-data-[collapsible=icon]:items-center">
           <SidebarMenuItem>
             <UserMenuButton />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   );
 }

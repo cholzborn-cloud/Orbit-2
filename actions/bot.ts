@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
@@ -59,6 +59,27 @@ export async function updateBot(id: string, input: unknown): Promise<CreateBotRe
   const stmts: BatchItem<"pg">[] = [];
   if (values.isMain) stmts.push(clearMain(userId));
   stmts.push(db.update(bots).set(values).where(and(eq(bots.id, id), eq(bots.userId, userId))));
+  await db.batch(stmts as [BatchItem<"pg">, ...BatchItem<"pg">[]]);
+  revalidatePath("/");
+  return { ok: true, id };
+}
+
+export async function deleteBot(id: string): Promise<CreateBotResult> {
+  const { userId } = await auth();
+  if (!userId) return { ok: false, error: "Bitte melde dich an." };
+
+  // Direktchats des Bots gehen mit; Mitgliedschaften in Gruppen verschwinden per Cascade.
+  const direct = await db
+    .select({ id: chats.id })
+    .from(chats)
+    .innerJoin(chatMembers, eq(chatMembers.chatId, chats.id))
+    .where(and(eq(chatMembers.botId, id), eq(chats.userId, userId), eq(chats.kind, "direct")));
+
+  const stmts: BatchItem<"pg">[] = [];
+  if (direct.length) {
+    stmts.push(db.delete(chats).where(inArray(chats.id, direct.map((c) => c.id))));
+  }
+  stmts.push(db.delete(bots).where(and(eq(bots.id, id), eq(bots.userId, userId))));
   await db.batch(stmts as [BatchItem<"pg">, ...BatchItem<"pg">[]]);
   revalidatePath("/");
   return { ok: true, id };

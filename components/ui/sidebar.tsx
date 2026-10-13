@@ -31,7 +31,7 @@ const SIDEBAR_WIDTH = "19rem"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "4.5rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
-const SIDEBAR_WIDTH_KEY = "sidebar_width"
+const SIDEBAR_WIDTH_COOKIE_NAME = "sidebar_width"
 const SIDEBAR_MIN_PX = 240
 const SIDEBAR_MAX_PX = 480
 
@@ -60,6 +60,7 @@ function useSidebar() {
 
 function SidebarProvider({
   defaultOpen = true,
+  defaultWidth,
   open: openProp,
   onOpenChange: setOpenProp,
   className,
@@ -68,27 +69,20 @@ function SidebarProvider({
   ...props
 }: React.ComponentProps<"div"> & {
   defaultOpen?: boolean
+  defaultWidth?: number
   open?: boolean
   onOpenChange?: (open: boolean) => void
 }) {
   const isMobile = useIsMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
 
-  // Breite per Ziehen; nach dem Mount aus localStorage, damit Server und Client gleich rendern.
-  const [width, setWidthState] = React.useState<number | null>(null)
+  // Breite per Ziehen; Startwert kommt vom Server (Cookie), damit nichts springt.
+  const [width, setWidthState] = React.useState<number | null>(defaultWidth ?? null)
   const [resizing, setResizing] = React.useState(false)
-  React.useEffect(() => {
-    try {
-      const saved = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY))
-      if (saved >= SIDEBAR_MIN_PX && saved <= SIDEBAR_MAX_PX) setWidthState(saved)
-    } catch {}
-  }, [])
   const setWidth = React.useCallback((px: number) => {
     const next = Math.round(Math.min(SIDEBAR_MAX_PX, Math.max(SIDEBAR_MIN_PX, px)))
     setWidthState(next)
-    try {
-      localStorage.setItem(SIDEBAR_WIDTH_KEY, String(next))
-    } catch {}
+    document.cookie = `${SIDEBAR_WIDTH_COOKIE_NAME}=${next}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
   }, [])
 
   // This is the internal state of the sidebar.
@@ -271,39 +265,8 @@ function Sidebar({
         >
           {children}
         </div>
-        <SidebarResizeHandle side={side} />
       </div>
     </div>
-  )
-}
-
-function SidebarResizeHandle({ side }: { side: "left" | "right" }) {
-  const { setWidth, setResizing } = useSidebar()
-
-  return (
-    <div
-      role="separator"
-      aria-orientation="vertical"
-      aria-label="Seitenleiste breiter oder schmaler ziehen"
-      data-slot="sidebar-resize-handle"
-      className={cn(
-        "absolute inset-y-0 z-20 w-2 cursor-col-resize touch-none after:absolute after:inset-y-0 after:left-1/2 after:w-px after:-translate-x-1/2 after:transition-colors hover:after:bg-sidebar-border group-data-[collapsible=icon]:hidden",
-        side === "left" ? "-right-1" : "-left-1"
-      )}
-      onPointerDown={(event) => {
-        event.preventDefault()
-        event.currentTarget.setPointerCapture(event.pointerId)
-        setResizing(true)
-      }}
-      onPointerMove={(event) => {
-        if (!event.currentTarget.hasPointerCapture(event.pointerId)) return
-        setWidth(side === "left" ? event.clientX : window.innerWidth - event.clientX)
-      }}
-      onPointerUp={(event) => {
-        event.currentTarget.releasePointerCapture(event.pointerId)
-        setResizing(false)
-      }}
-    />
   )
 }
 
@@ -334,16 +297,41 @@ function SidebarTrigger({
 }
 
 function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
-  const { toggleSidebar } = useSidebar()
+  const { state, toggleSidebar, setWidth, setResizing } = useSidebar()
+  const drag = React.useRef<{ x: number; moved: boolean } | null>(null)
 
+  // Klick klappt ein/aus, Ziehen ändert die Breite (nur ausgeklappt).
   return (
     <button
       data-sidebar="rail"
       data-slot="sidebar-rail"
       aria-label="Toggle Sidebar"
       tabIndex={-1}
-      onClick={toggleSidebar}
-      title="Toggle Sidebar"
+      title="Klicken: ein-/ausklappen, Ziehen: Breite ändern"
+      onPointerDown={(event) => {
+        event.currentTarget.setPointerCapture(event.pointerId)
+        drag.current = { x: event.clientX, moved: false }
+      }}
+      onPointerMove={(event) => {
+        const d = drag.current
+        if (!d || (!d.moved && Math.abs(event.clientX - d.x) < 4)) return
+        d.moved = true
+        if (state !== "expanded") return
+        const side = event.currentTarget.closest("[data-side]")?.getAttribute("data-side")
+        setResizing(true)
+        setWidth(side === "right" ? window.innerWidth - event.clientX : event.clientX)
+      }}
+      onPointerUp={(event) => {
+        event.currentTarget.releasePointerCapture(event.pointerId)
+        const moved = drag.current?.moved
+        drag.current = null
+        setResizing(false)
+        if (!moved) toggleSidebar()
+      }}
+      onClick={(event) => {
+        // detail 0 = per Tastatur ausgelöst; Mausklicks laufen über onPointerUp.
+        if (event.detail === 0) toggleSidebar()
+      }}
       className={cn(
         "absolute inset-y-0 z-20 hidden w-4 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:start-1/2 after:w-[2px] hover:after:bg-sidebar-border sm:flex ltr:-translate-x-1/2 rtl:-translate-x-1/2",
         "in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize",

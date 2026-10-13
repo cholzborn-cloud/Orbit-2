@@ -6,8 +6,17 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 
-import { createBot, updateBot } from "@/actions/bot";
+import { createBot, deleteBot, updateBot } from "@/actions/bot";
 import { ChatAvatar, ORBIS, ORBI_BASE_COLORS } from "@/components/chat-avatar";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -67,6 +76,7 @@ export function BotDialog({
   const open = openProp ?? openState;
   const setOpen = onOpenChange ?? setOpenState;
   const [pending, startTransition] = useTransition();
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const form = useForm<BotFormValues>({
     resolver: zodResolver(botFormSchema),
     defaultValues: bot ?? { avatar: "erdi", color: null, isMain: false, name: orbiName("erdi"), ...PRESETS[0] },
@@ -86,6 +96,17 @@ export function BotDialog({
       router.refresh();
     }),
   );
+
+  const onDelete = () =>
+    startTransition(async () => {
+      if (!bot) return;
+      const res = await deleteBot(bot.id);
+      setConfirmingDelete(false);
+      if (!res.ok) return form.setError("root", { message: res.error });
+      setOpen(false);
+      router.push("/");
+      router.refresh();
+    });
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -244,6 +265,17 @@ export function BotDialog({
           </FieldGroup>
         </form>
         <DialogFooter>
+          {bot && (
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={pending}
+              className="sm:mr-auto"
+              onClick={() => setConfirmingDelete(true)}
+            >
+              Löschen
+            </Button>
+          )}
           <Button type="button" variant="outline" onClick={() => setOpen(false)}>
             Abbrechen
           </Button>
@@ -252,6 +284,22 @@ export function BotDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      <AlertDialog open={confirmingDelete} onOpenChange={setConfirmingDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{bot?.name} wirklich löschen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Der Orbi und sein Chat werden endgültig gelöscht. Das lässt sich nicht rückgängig machen.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={pending}>Abbrechen</AlertDialogCancel>
+            <Button type="button" variant="destructive" disabled={pending} onClick={onDelete}>
+              Endgültig löschen
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

@@ -1,12 +1,14 @@
 "use client";
 
-import { PencilIcon, PlusIcon, SearchIcon, StarIcon, UsersIcon } from "lucide-react";
-import { useRef, useState } from "react";
+import { PencilIcon, PlusIcon, StarIcon, UsersIcon } from "lucide-react";
+import { useParams } from "next/navigation";
+import { useState } from "react";
 
 import { cn } from "@/lib/utils";
 
 import { BotDialog } from "@/components/bot-dialog";
 import { ChatAvatar } from "@/components/chat-avatar";
+import { SidebarSearch } from "@/components/sidebar-search";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
@@ -14,15 +16,16 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarHeader,
-  SidebarInput,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarSeparator,
   SidebarTrigger,
-  useSidebar,
 } from "@/components/ui/sidebar";
 
 export type SidebarBot = {
+  chatId: string;
   id: string;
   name: string;
   avatar: (typeof import("@/components/chat-avatar").ORBIS)[number];
@@ -79,7 +82,7 @@ function GroupAvatar({ members, className }: { members: SidebarGroupChat["member
 
 const EASE = "duration-300 ease-[cubic-bezier(.32,.72,0,1)]";
 const ROW =
-  "h-14 gap-3 rounded-xl group-data-[collapsible=icon]:size-12! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:rounded-full";
+  "h-14 hover:bg-sidebar-accent/60 data-active:hover:bg-sidebar-accent gap-3 rounded-xl group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:rounded-full";
 // Text blendet aus und klappt zu, damit der Avatar mit der Leiste zur Mitte gleitet.
 const LABEL = `flex min-w-0 max-w-full flex-1 flex-col leading-tight transition-[max-width,opacity] ${EASE} group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0`;
 
@@ -92,16 +95,11 @@ export function SidebarNav({
   bots: SidebarBot[];
   groups?: SidebarGroupChat[];
 }) {
-  const [query, setQuery] = useState("");
   const [creatingBot, setCreatingBot] = useState(false);
   const [editing, setEditing] = useState<SidebarBot | null>(null);
-  const { setOpen } = useSidebar();
-  const searchRef = useRef<HTMLInputElement>(null);
-  const openSearch = () => {
-    setOpen(true);
-    setTimeout(() => searchRef.current?.focus(), 320);
-  };
-
+  // Aktiver Chat aus der Route /chats/:chatId.
+  const { chatId: activeChatId } = useParams<{ chatId?: string }>();
+  const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
   const match = (s: string) => s.toLowerCase().includes(q);
   const shownBots = bots.filter((b) => match(b.name) || match(b.job));
@@ -115,19 +113,13 @@ export function SidebarNav({
           <SidebarTrigger className="rounded-full transition-colors hover:bg-sidebar-accent dark:hover:bg-sidebar-accent group-data-[collapsible=icon]:size-10" />
         </div>
         <div className="flex items-center gap-2 group-data-[collapsible=icon]:flex-col">
-          <SidebarInput
-            ref={searchRef}
-            placeholder="Suche"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="h-9 rounded-full animate-in fade-in-0 slide-in-from-left-2 duration-300 group-data-[collapsible=icon]:hidden transition-all hover:-translate-y-px hover:bg-sidebar-accent hover:shadow-lg hover:ring-2 hover:ring-primary/60"
-          />
+          <SidebarSearch chats={main ? [main, ...bots] : bots} query={query} onQueryChange={setQuery} />
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
                 <Button
-                  size="icon"
-                  variant="outline"
+                  size="icon-sm"
+                  variant="ghost"
                   className="rounded-full transition-colors hover:bg-sidebar-accent dark:hover:bg-sidebar-accent group-data-[collapsible=icon]:size-10"
                   aria-label="Neu erstellen"
                 >
@@ -145,25 +137,16 @@ export function SidebarNav({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button
-            size="icon"
-            variant="outline"
-            aria-label="Suche"
-            onClick={openSearch}
-            className="hidden rounded-full animate-in fade-in-0 zoom-in-90 duration-300 transition-all hover:scale-110 hover:bg-primary hover:text-primary-foreground hover:shadow-lg group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:size-10"
-          >
-            <SearchIcon />
-          </Button>
         </div>
       </SidebarHeader>
 
       <SidebarContent className="gap-1">
         {main && (!q || match(main.name)) && (
-          <div className="group/main relative mx-3 flex flex-col items-center overflow-hidden rounded-2xl bg-sidebar-accent/40 p-4 hover:bg-sidebar-accent transition-[padding,background-color] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:hover:bg-transparent group-data-[collapsible=icon]:p-0.5">
-            <div className="relative size-16 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:size-11">
+          <div className={cn("group/main relative mx-3 flex flex-col items-center overflow-hidden rounded-2xl bg-sidebar-accent/40 p-4 hover:bg-sidebar-accent/70 transition-[padding,background-color] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:hover:bg-transparent group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0", main.chatId === activeChatId && "bg-sidebar-accent group-data-[collapsible=icon]:bg-sidebar-accent group-data-[collapsible=icon]:hover:bg-sidebar-accent")}>
+            <div className="relative size-16 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:size-7">
               <ChatAvatar seed={main.avatar} color={main.color} className="size-full" />
-              <span className="absolute right-[4.5%] bottom-[7%] flex size-5 items-center justify-center rounded-full bg-black transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:size-4">
-                <StarIcon className="size-3 fill-yellow-400 text-yellow-400 group-data-[collapsible=icon]:size-2.5" />
+              <span className="absolute right-[4.5%] bottom-[7%] flex size-5 items-center justify-center rounded-full bg-black transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:-right-0.5 group-data-[collapsible=icon]:-bottom-0.5 group-data-[collapsible=icon]:size-3">
+                <StarIcon className="size-3 fill-yellow-400 text-yellow-400 group-data-[collapsible=icon]:size-2" />
               </span>
             </div>
             <div className="mt-2 flex max-h-12 flex-col items-center gap-0.5 transition-[max-height,margin,opacity] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:mt-0 group-data-[collapsible=icon]:max-h-0 group-data-[collapsible=icon]:opacity-0">
@@ -182,12 +165,16 @@ export function SidebarNav({
           </div>
         )}
 
+        {main && (shownBots.length > 0 || shownGroups.length > 0) && (
+          <SidebarSeparator className="mx-auto mt-2 mb-1 hidden bg-foreground/20 data-horizontal:w-6 group-data-[collapsible=icon]:block" />
+        )}
+
         <SidebarGroup className="px-2 py-1">
           <SidebarGroupLabel className="px-2 transition-[height,margin,opacity] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:mt-0 group-data-[collapsible=icon]:h-0 group-data-[collapsible=icon]:overflow-hidden">Chats</SidebarGroupLabel>
-          <SidebarMenu className="gap-1">
+          <SidebarMenu className="gap-1 group-data-[collapsible=icon]:items-center">
             {shownBots.map((b) => (
               <SidebarMenuItem key={b.id}>
-                <SidebarMenuButton size="lg" className={ROW} tooltip={b.name}>
+                <SidebarMenuButton size="lg" className={cn(ROW, "group-has-data-[sidebar=menu-action]/menu-item:pr-2")} tooltip={b.name} isActive={b.chatId === activeChatId}>
                   <ChatAvatar seed={b.avatar} color={b.color} className="size-7 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)]" />
                   <div className={cn(LABEL, "flex-row items-start gap-2")}>
                     <div className="flex min-w-0 flex-1 flex-col">
@@ -196,9 +183,18 @@ export function SidebarNav({
                         {b.lastMessagePreview ?? "Noch keine Nachrichten"}
                       </span>
                     </div>
-                    <span className="shrink-0 pt-0.5 text-xs text-muted-foreground">{b.lastMessageAgo}</span>
+                    <span className="shrink-0 pt-0.5 text-xs text-muted-foreground transition-opacity group-focus-within/menu-item:opacity-0 group-hover/menu-item:opacity-0">{b.lastMessageAgo}</span>
                   </div>
                 </SidebarMenuButton>
+                {/* Beim Hover ersetzt das Stift-Icon die Zeit, mittig rechts. */}
+                <SidebarMenuAction
+                  showOnHover
+                  className="top-1/2! right-2 -translate-y-1/2 group-data-[collapsible=icon]:hidden"
+                  onClick={() => setEditing(b)}
+                  aria-label="Bearbeiten"
+                >
+                  <PencilIcon />
+                </SidebarMenuAction>
               </SidebarMenuItem>
             ))}
             {shownBots.length === 0 && (q || !main) && (
@@ -208,9 +204,11 @@ export function SidebarNav({
         </SidebarGroup>
 
         {shownGroups.length > 0 && (
+          <>
+          <SidebarSeparator className="mx-auto my-1 hidden bg-foreground/20 data-horizontal:w-6 group-data-[collapsible=icon]:block" />
           <SidebarGroup className="px-3 py-1">
             <SidebarGroupLabel className="px-2 transition-[height,margin,opacity] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:mt-0 group-data-[collapsible=icon]:h-0 group-data-[collapsible=icon]:overflow-hidden">Gruppen</SidebarGroupLabel>
-            <SidebarMenu className="gap-1">
+            <SidebarMenu className="gap-1 group-data-[collapsible=icon]:items-center">
               {shownGroups.map((g) => (
                 <SidebarMenuItem key={g.id}>
                   <SidebarMenuButton size="lg" className={ROW} tooltip={g.name}>
@@ -224,6 +222,7 @@ export function SidebarNav({
               ))}
             </SidebarMenu>
           </SidebarGroup>
+          </>
         )}
       </SidebarContent>
 

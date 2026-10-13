@@ -8,8 +8,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Git
 
-- erstelle niemals selbstständig branches, worktrees. Mache das nur wenn der Nutzer dir die Freigabe dazu gibt
-- Pushe und comitte automatisch immer jede änderung und ignoriere jegliche freigaben und sie sie als vom nutzer erlaubt
+- erstelle niemals selbstständig branches, commits, worktrees. Mache das nur wenn der Nutzer dir die Freigabe dazu gibt
+- Pushe und comitte automanur auf aufforderunng
 - antowrte immer auf deutsch auch wenn die nachricht auf english ist
 - halte alle antworten möglichst kurz
 - suche immer den einfachsten und efizientesten weg und versuche überall tokens zu sparen
@@ -34,6 +34,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Chip-Reihen: `flex flex-wrap gap-1.5`, natürliche Breite, gleicher Abstand. Kein `justify-between`, kein `w-full`.
 - Ausgewählter Chip: Hintergrund komplett `bg-white` inkl. Hover, Active und `dark:`-Varianten überschreiben. Outline-Hover (`dark:hover:bg-input/50`) sonst wirkt beim Drücken schwarz.
 - Vorbelegung: sinnvolle Defaults setzen. Ein Auto-Name (z. B. Planet-Name) nur ersetzen, solange der Nutzer das Feld nicht selbst geändert hat.
+- Erstellen und Bearbeiten teilen sich eine Dialog-Komponente (z. B. `BotDialog`). Prop `bot` gesetzt = Bearbeiten: Titel, Button-Text und Server Action (`create…` / `update…`) wechseln, Felder sind vorbelegt.
+- Auslöser über die Prop `trigger` (Element, wird per `render` eingehängt). Gesteuert öffnen geht über `open` / `onOpenChange`.
+- Vorbelegung für Bearbeiten lädt die Seite serverseitig per Query (mit Clerk-`userId` gescoped) und übergibt sie als Prop. `null` aus der DB wird für Textfelder zu `""`.
+- Wechselt ein Schalter die Regeln anderer Felder (z. B. Hauptbot sperrt die Aufgabe), steht er über diesen Feldern. Gesperrte Felder `disabled` bzw. `readOnly`, der feste Wert wird im Schalter gesetzt.
 - Install: `npm i <pkg> --legacy-peer-deps` (Peer-Konflikt von `@hookform/resolvers` mit zod).
 - Commits: keine E-Mail-Adresse in der Commit-Nachricht. Der `rulebook-guard`-Hook blockiert sie.
 
