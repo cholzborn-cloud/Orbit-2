@@ -1,6 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
+import { useChatActions, useLoadTranscript, useTriggerChatTransport } from "@trigger.dev/sdk/chat/react";
 import type { UIMessage } from "ai";
 import { CheckIcon, CopyIcon, HistoryIcon, InfoIcon } from "lucide-react";
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -31,8 +32,9 @@ import {
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
 import { ChatAvatar, ORBI_BASE_COLORS, orbiFromSeed } from "@/components/chat-avatar";
-import { updateChatPreview } from "@/actions/chat";
+import { loadTranscript, mintChatAccessToken, startChatSession, touchChat } from "@/actions/chat";
 import type { EditableBot } from "@/components/bot-dialog";
+import type { orbitChat } from "@/trigger/chat";
 import {
   CLEAR_EVENT,
   ChatHeader,
@@ -176,24 +178,77 @@ function InfoAction({ meta }: { meta?: ChatMetadata }) {
   );
 }
 
-// Nachrichten bleiben im Browser gespeichert (je Chat).
-export function Chat({
-  chatId,
-  models,
-  avatar: avatarProp,
-  color,
-  bot,
-  dots,
-}: {
+type ChatProps = {
   chatId: string;
   models: ChatModel[];
   avatar?: string | null;
   color?: string | null;
   bot: EditableBot;
   dots: { avatar: string; color: string | null }[];
+};
+
+function readSession(chatId: string) {
+  try {
+    const raw = localStorage.getItem(`orbit-chat-session:${chatId}`);
+    return raw ? { [chatId]: JSON.parse(raw) } : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+// Verlauf liegt im Transcript-Storage des Chat-Agents (je Chat-ID). Erst laden, dann den Chat mounten.
+export function Chat(props: ChatProps) {
+  const { chatId } = props;
+  const transport = useTriggerChatTransport<typeof orbitChat>({
+    task: "orbit-chat",
+    // Sitzungsstand im Browser halten: nach Reload hängt sich der Chat an die laufende Antwort.
+    sessions: readSession(chatId),
+    onSessionChange: (id, session) => {
+      try {
+        const key = `orbit-chat-session:${id}`;
+        if (session) localStorage.setItem(key, JSON.stringify(session));
+        else localStorage.removeItem(key);
+      } catch {}
+    },
+    accessToken: ({ chatId }) => mintChatAccessToken(chatId),
+    startSession: ({ chatId, clientData }) => startChatSession({ chatId, clientData }),
+  });
+  const { messages, isLoading } = useLoadTranscript(chatId, loadTranscript, { transport });
+  // Leerer Platz in der Größe des Chats, damit das Layout nicht springt.
+  if (isLoading) return <div className="relative flex min-h-0 flex-1 flex-col" />;
+  return <ChatBody {...props} transport={transport} initialMessages={messages as UIMessage<ChatMetadata>[]} />;
+}
+
+function ChatBody({
+  chatId,
+  models,
+  avatar: avatarProp,
+  color,
+  bot,
+  dots,
+  transport,
+  initialMessages,
+}: ChatProps & {
+  transport: ReturnType<typeof useTriggerChatTransport<typeof orbitChat>>;
+  initialMessages: UIMessage<ChatMetadata>[];
 }) {
   const avatar = avatarProp || "erdi";
-  const [modelId, setModelId] = useState(models[0]?.id ?? "");
+  // Zuletzt gewähltes Modell und Stufen je Chat, lokal im Browser.
+  const [saved] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(`orbit-chat-prefs:${chatId}`) ?? "{}") as {
+        modelId?: string;
+        efforts?: Record<string, Effort>;
+      };
+    } catch {
+      return {};
+    }
+  });
+  const [modelId, setModelId] = useState(
+    models.some((m) => m.id === saved.modelId) || saved.modelId === NO_MODEL
+      ? saved.modelId!
+      : (models[0]?.id ?? ""),
+  );
   // Stufe je Modell getrennt, Standard Mittel (falls vorhanden).
   const [chars, setChars] = useState(0);
   // Kontext an: ganzer Verlauf geht mit. Aus: nur die neue Nachricht.
@@ -204,74 +259,71 @@ export function Chat({
     const t = setTimeout(() => setContextHint(0), 1500);
     return () => clearTimeout(t);
   }, [contextHint]);
-  const [efforts, setEfforts] = useState<Record<string, Effort>>({});
-  const { messages, setMessages, sendMessage, status, stop } = useChat<UIMessage<ChatMetadata>>({
+  const [efforts, setEfforts] = useState<Record<string, Effort>>(saved.efforts ?? {});
+  useEffect(() => {
+    try {
+      localStorage.setItem(`orbit-chat-prefs:${chatId}`, JSON.stringify({ modelId, efforts }));
+    } catch {}
+  }, [chatId, modelId, efforts]);
+  const { messages, setMessages, sendMessage, status, stop, resumeStream } = useChat<UIMessage<ChatMetadata>>({
     id: chatId,
-    // Seitenleiste zeigt die letzte Nachricht: fertige Antwort wird zur Vorschau.
-    onFinish: ({ message, isAbort, isError }) => {
-      if (isAbort || isError || message.role !== "assistant") return;
-      const text = message.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
-      if (text) void updateChatPreview(chatId, text);
-    },
+    transport,
+    messages: initialMessages,
   });
 
-  // shortcut: Verlauf nur im localStorage dieses Browsers, für geräteübergreifend in die DB verschieben.
-  const storeKey = `orbit-chat:${chatId}`;
-  const [loaded, setLoaded] = useState(false);
+  // Seitenleiste zeigt die Zeit der letzten Nachricht: sobald eine Antwort endet (auch nach Reload), speichern.
+  const prevStatus = useRef(status);
+  useEffect(() => {
+    const was = prevStatus.current;
+    prevStatus.current = status;
+    if (status !== "ready" || (was !== "streaming" && was !== "submitted")) return;
+    void touchChat(chatId);
+  }, [status, chatId]);
+
+  // Läuft gerade eine Antwort, hängt sich der Chat nach Reload live wieder an den Stream.
+  // Nur einmal: ein doppelter Aufruf (Strict Mode) bricht beide Verbindungen ab.
+  const resumed = useRef(false);
+  useEffect(() => {
+    if (resumed.current) return;
+    resumed.current = true;
+    void resumeStream();
+  }, [resumeStream]);
+
+  const { sendAction } = useChatActions({ sendMessage });
   // Gespeicherte Nachrichten erscheinen ohne Einblende-Animation.
-  const restoredIds = useRef(new Set<string>());
-  // Layout-Effekt: Verlauf steht vor dem ersten Zeichnen, kein Aufblitzen des leeren Chats.
-  useLayoutEffect(() => {
-    try {
-      const saved = localStorage.getItem(storeKey);
-      if (saved) {
-        const restored: typeof messages = JSON.parse(saved);
-        restoredIds.current = new Set(restored.map((m) => m.id));
-        setMessages(restored);
-      }
-    } catch {}
-    setLoaded(true);
-  }, [storeKey, setMessages]);
+  const restoredIds = useRef(new Set(initialMessages.map((m) => m.id)));
   // Beim Öffnen sofort ganz unten, vor dem ersten Zeichnen.
   const conv = useRef<StickToBottomContext>(null);
   useLayoutEffect(() => {
     const el = conv.current?.scrollRef.current;
-    if (loaded && el) el.scrollTop = el.scrollHeight;
-  }, [loaded]);
+    if (el) el.scrollTop = el.scrollHeight;
+  }, []);
   const header = useRef<ChatHeaderHandle>(null);
-  useHeaderScroll(conv, header, loaded);
+  useHeaderScroll(conv, header, true);
   // Neue Nachricht (eigene oder Antwort): immer nach unten.
   const count = messages.length;
   useEffect(() => {
-    if (loaded && count > restoredIds.current.size) void conv.current?.scrollToBottom({ animation: SCROLL_SPRING });
-  }, [loaded, count]);
+    if (count > restoredIds.current.size) void conv.current?.scrollToBottom({ animation: SCROLL_SPRING });
+  }, [count]);
   // Verlauf leeren aus dem Orbi-Dialog.
   useEffect(() => {
     const onClear = (e: Event) => {
       if ((e as CustomEvent).detail !== chatId) return;
       setMessages([]);
       restoredIds.current = new Set();
-      try {
-        localStorage.removeItem(storeKey);
-      } catch {}
+      void sendAction({ type: "clear" });
     };
     window.addEventListener(CLEAR_EVENT, onClear);
     return () => window.removeEventListener(CLEAR_EVENT, onClear);
-  }, [chatId, storeKey, setMessages]);
-  useEffect(() => {
-    // Erst nach dem Laden und nicht mitten im Stream speichern.
-    if (!loaded || status === "streaming" || status === "submitted") return;
-    try {
-      localStorage.setItem(storeKey, JSON.stringify(messages));
-    } catch {}
-  }, [loaded, status, messages, storeKey]);
-
+  }, [chatId, setMessages, sendAction]);
   const model = models.find((m) => m.id === modelId);
   const userColor = color || ORBI_BASE_COLORS[orbiFromSeed(avatar)];
   const levels = model?.efforts ?? [];
   const effort =
     (model && efforts[model.id]) ||
     (levels.includes("medium") ? "medium" : levels[0]);
+  // Agent validiert clientData schon beim Boot (auch bei Fortsetzung): Standardwerte am Transport setzen.
+  transport.setClientData({ model: modelId, effort, context });
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
@@ -282,7 +334,7 @@ export function Chat({
           {/* Freifläche unter dem großen Header (Orbit 1: 170). */}
           <div aria-hidden className="shrink-0" style={{ height: HEADER_SPACER }} />
           {/* Vor dem Laden nichts zeigen, sonst blitzt kurz der leere Chat auf. */}
-          {!loaded ? null : messages.length === 0 ? (
+          {messages.length === 0 ? (
             <ConversationEmptyState
               title="Noch keine Nachrichten"
               description="Stell eine Frage, um zu starten."
@@ -359,7 +411,7 @@ export function Chat({
               // Dev: nur eigene Nachricht anhängen, kein Request.
               const body = fillTo(text, chars);
               if (!body.trim()) return;
-              void updateChatPreview(chatId, body);
+              void touchChat(chatId);
               setMessages((m) => [
                 ...m,
                 { id: crypto.randomUUID(), role: "user", parts: [{ type: "text", text: body }] },
@@ -367,8 +419,8 @@ export function Chat({
               return;
             }
             if (text.trim() && model) {
-              void updateChatPreview(chatId, text);
-              sendMessage({ text }, { body: { model: model.id, effort, context } });
+              void touchChat(chatId);
+              sendMessage({ text }, { metadata: { model: model.id, effort, context } });
             }
           }}
         >

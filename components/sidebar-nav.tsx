@@ -3,7 +3,9 @@
 import { PlusIcon, StarIcon, UsersIcon } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { formatDistanceToNowStrict } from "date-fns";
+import { de } from "date-fns/locale";
 
 import { cn } from "@/lib/utils";
 
@@ -24,6 +26,20 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 
+// Unter einer Minute "gerade eben", sonst relative Zeit; tickt alle 15 s.
+function Ago({ at }: { at: string }) {
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    setNow(Date.now());
+    const t = setInterval(() => setNow(Date.now()), 15_000);
+    return () => clearInterval(t);
+  }, []);
+  if (now === null) return null;
+  const ms = now - new Date(at).getTime();
+  if (ms < 60_000) return <>gerade eben</>;
+  return <>{formatDistanceToNowStrict(new Date(at), { locale: de })}</>;
+}
+
 export type SidebarBot = {
   chatId: string;
   id: string;
@@ -33,8 +49,7 @@ export type SidebarBot = {
   job: string;
   instructions: string | null;
   isMain: boolean;
-  lastMessagePreview: string | null;
-  lastMessageAgo: string;
+  lastMessageAt: string;
 };
 
 export type SidebarGroupChat = {
@@ -151,8 +166,7 @@ export function SidebarNav({
             <div className="mt-2 flex max-h-24 w-full flex-col items-center gap-0.5 transition-[max-height,margin,opacity] duration-300 ease-[cubic-bezier(.32,.72,0,1)] group-data-[collapsible=icon]:mt-0 group-data-[collapsible=icon]:max-h-0 group-data-[collapsible=icon]:opacity-0">
               <span className="font-semibold leading-tight">{main.name}</span>
               <div className="mt-1 flex w-full min-w-0 flex-col items-center gap-0.5 text-xs text-muted-foreground">
-                <span className="w-full truncate text-center">{main.lastMessagePreview ?? "Noch keine Nachrichten"}</span>
-                <span>{main.lastMessageAgo}</span>
+                <span><Ago at={main.lastMessageAt} /></span>
               </div>
             </div>
             <Link href={`/chats/${main.chatId}`} aria-label={main.name} className="absolute inset-0 rounded-2xl group-data-[collapsible=icon]:rounded-full" />
@@ -173,11 +187,8 @@ export function SidebarNav({
                   <div className={cn(LABEL, "flex-row items-start gap-2")}>
                     <div className="flex min-w-0 flex-1 flex-col">
                       <span className="truncate font-medium">{b.name}</span>
-                      <span className="truncate text-xs text-muted-foreground">
-                        {b.lastMessagePreview ?? "Noch keine Nachrichten"}
-                      </span>
                     </div>
-                    <span className="shrink-0 pt-0.5 text-xs text-muted-foreground">{b.lastMessageAgo}</span>
+                    <span className="shrink-0 pt-0.5 text-xs text-muted-foreground"><Ago at={b.lastMessageAt} /></span>
                   </div>
                 </SidebarMenuButton>
               </SidebarMenuItem>

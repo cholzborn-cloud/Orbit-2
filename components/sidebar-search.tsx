@@ -56,7 +56,7 @@ export function SidebarSearch({
             {chats.map((c) => (
               <CommandItem
                 key={c.chatId}
-                value={`${c.name} ${c.lastMessagePreview ?? ""} ${c.chatId}`}
+                value={`${c.name} ${c.chatId}`}
                 onSelect={() => {
                   setOpen(false);
                   setPopoverOpen(false);
@@ -65,9 +65,6 @@ export function SidebarSearch({
               >
                 <ChatAvatar seed={c.avatar} color={c.color} className="size-6" />
                 <span className="shrink-0 font-medium">{c.name}</span>
-                <span className="truncate text-xs text-muted-foreground">
-                  {c.lastMessagePreview ?? "Noch keine Nachrichten"}
-                </span>
               </CommandItem>
             ))}
           </CommandGroup>

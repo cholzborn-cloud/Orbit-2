@@ -1,0 +1,3 @@
+[mcp_servers.trigger]
+command = "npx"
+args = ["trigger.dev@latest", "mcp", "--project-ref", "proj_ghnnfyqsaasakkywwund"]

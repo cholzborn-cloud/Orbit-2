@@ -1,6 +1,8 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
+import { auth as triggerAuth } from "@trigger.dev/sdk";
+import { chat, defaultStorage } from "@trigger.dev/sdk/ai";
 import { and, eq, inArray } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
@@ -34,17 +36,45 @@ export async function createGroup(
   return { ok: true, id };
 }
 
-// Nur die Vorschau (letzte Nachricht) für die Seitenleiste, nicht den Verlauf.
-export async function updateChatPreview(chatId: string, text: string) {
+// Nur die Zeit der letzten Nachricht für die Seitenleiste.
+export async function touchChat(chatId: string) {
   const { userId } = await auth();
   if (!userId) return;
 
-  const preview = text.replace(/\s+/g, " ").trim().slice(0, 140);
-  if (!preview) return;
-
   await db
     .update(chats)
-    .set({ lastMessagePreview: preview, lastMessageAt: new Date() })
+    .set({ lastMessageAt: new Date() })
     .where(and(eq(chats.id, chatId), eq(chats.userId, userId)));
   revalidatePath("/", "layout");
+}
+
+// Chat-Agent (Trigger.dev): jeder Zugriff nur auf eigene Chats.
+async function ownChat(chatId: string) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Nicht angemeldet");
+  const [row] = await db
+    .select({ id: chats.id })
+    .from(chats)
+    .where(and(eq(chats.id, chatId), eq(chats.userId, userId)));
+  if (!row) throw new Error("Unbekannter Chat");
+}
+
+const startSession = chat.createStartSessionAction("orbit-chat");
+export async function startChatSession(params: Parameters<typeof startSession>[0]) {
+  await ownChat(params.chatId);
+  return startSession(params);
+}
+
+export async function mintChatAccessToken(chatId: string) {
+  await ownChat(chatId);
+  return triggerAuth.createPublicToken({
+    scopes: { read: { sessions: chatId }, write: { sessions: chatId } },
+    expirationTime: "1h",
+  });
+}
+
+const loadTranscriptAction = chat.createLoadTranscriptAction(defaultStorage);
+export async function loadTranscript(params: Parameters<typeof loadTranscriptAction>[0]) {
+  await ownChat(params.chatId);
+  return loadTranscriptAction(params);
 }
