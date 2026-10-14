@@ -187,6 +187,7 @@ export function SidebarNav({
                   <div className={cn(LABEL, "flex-row items-start gap-2")}>
                     <div className="flex min-w-0 flex-1 flex-col">
                       <span className="truncate font-medium">{b.name}</span>
+                      <span className="truncate text-xs text-muted-foreground">{b.job}</span>
                     </div>
                     <span className="shrink-0 pt-0.5 text-xs text-muted-foreground"><Ago at={b.lastMessageAt} /></span>
                   </div>
