@@ -15,7 +15,7 @@ This project has Trigger.dev agent skills installed in `.agents/skills/`. Before
 <!-- TRIGGER.DEV SKILLS END -->
 
 ## Commits
-- E-Mail-Adressen dürfen automatisch committet werden, ohne Rückfrage (Consti, 15.10.2026). Nicht committen: Passwörter, API-Schlüssel, Tokens (`.env.local` bleibt ignoriert).
+- E-Mail-Adressen dürfen automatisch committet und gepusht werden, immer, ohne Rückfrage (Consti, 15.10.2026). Nicht committen oder pushen: Passwörter, API-Schlüssel, Tokens (`.env.local` bleibt ignoriert).
 
 ## Railway deployment
 - Projekt `orbit-2` (ID `971f998b-ab7a-419f-9f80-e967386235e6`), Environment `production` (`6a9f81a3-ffec-4dac-b283-50f8caaae32e`), Service `orbit-2` (`a614d9d8-a3d3-469c-b7b6-526b6db0390e`). Skill `use-railway` nutzen.
