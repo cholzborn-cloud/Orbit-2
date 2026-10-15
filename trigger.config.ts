@@ -24,8 +24,15 @@ export default defineConfig({
     extensions: [
       // Tasks laufen in der Trigger-Cloud und lesen .env.local nicht.
       syncEnvVars(async (ctx) => {
-        const key = ctx.env.OPENROUTER_JEV_API_KEY ?? process.env.OPENROUTER_JEV_API_KEY;
-        return key ? [{ name: "OPENROUTER_API_KEY", value: key }] : [];
+        const get = (name: string) => ctx.env[name] ?? process.env[name];
+        const vars = [
+          { name: "OPENROUTER_API_KEY", value: get("OPENROUTER_JEV_API_KEY") },
+          ...["DAYTONA_API_KEY", "DAYTONA_API_URL", "CLI_PROXY_API_KEY", "DATABASE_URL"].map((name) => ({
+            name,
+            value: get(name),
+          })),
+        ];
+        return vars.filter((v): v is { name: string; value: string } => !!v.value);
       }),
     ],
   },
