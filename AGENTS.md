@@ -13,3 +13,6 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 This project has Trigger.dev agent skills installed in `.agents/skills/`. Before writing or changing Trigger.dev code (background tasks, scheduled tasks, realtime, or chat.agent AI agents), load the most relevant skill: `trigger-authoring-chat-agent`, `trigger-authoring-tasks`, `trigger-chat-agent-advanced`, `trigger-cost-savings`, `trigger-getting-started`, `trigger-realtime-and-frontend`.
 <!-- TRIGGER.DEV SKILLS END -->
+
+## Commits
+- E-Mail-Adressen dürfen automatisch committet werden, ohne Rückfrage (Consti, 15.10.2026). Nicht committen: Passwörter, API-Schlüssel, Tokens (`.env.local` bleibt ignoriert).
