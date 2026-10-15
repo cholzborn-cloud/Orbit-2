@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generierte Ordner und Agenten-Skills, kein eigener Code.
+    ".trigger/**",
+    ".agents/**",
   ]),
 ]);
 

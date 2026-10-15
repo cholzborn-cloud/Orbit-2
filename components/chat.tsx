@@ -2,8 +2,8 @@
 
 import { useChat } from "@ai-sdk/react";
 import { useChatActions, useLoadTranscript, useTriggerChatTransport } from "@trigger.dev/sdk/chat/react";
-import type { UIMessage } from "ai";
-import { CheckIcon, CopyIcon, HistoryIcon, InfoIcon } from "lucide-react";
+import { isToolUIPart, type UIMessage } from "ai";
+import { CheckIcon, CopyIcon, HistoryIcon, InfoIcon, PaperclipIcon } from "lucide-react";
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
@@ -23,15 +23,26 @@ import {
   MessageResponse,
 } from "@/components/ai-elements/message";
 import {
+  Attachment,
+  AttachmentInfo,
+  AttachmentPreview,
+  AttachmentRemove,
+  Attachments,
+} from "@/components/ai-elements/attachments";
+import {
   PromptInput,
   PromptInputBody,
   PromptInputButton,
   PromptInputFooter,
+  PromptInputHeader,
   PromptInputSubmit,
   PromptInputTextarea,
   PromptInputTools,
+  usePromptInputAttachments,
 } from "@/components/ai-elements/prompt-input";
 import { ChatAvatar, ORBI_BASE_COLORS, orbiFromSeed } from "@/components/chat-avatar";
+import { dataUrlBytes, FileCard, formatBytes, shrinkImage } from "@/components/media";
+import { ToolCall } from "@/components/tool-call";
 import { loadTranscript, mintChatAccessToken, startChatSession, touchChat } from "@/actions/chat";
 import type { EditableBot } from "@/components/bot-dialog";
 import type { orbitChat } from "@/trigger/chat";
@@ -134,6 +145,43 @@ function continueList(e: React.KeyboardEvent<HTMLTextAreaElement>) {
   if (line.trim() === m[0].trim()) ta.setRangeText("", lineStart, pos, "end");
   else ta.setRangeText(`\n${m[1]}${m[2] ? `${Number(m[2]) + 1}.` : m[3]} `, pos, pos, "end");
   ta.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+// Nicht-Bilder gehen unverändert über den Trigger-Stream; Bilder werden vorher verkleinert.
+const MAX_FILE = 2 * 1024 * 1024;
+
+const ATTACH_ERRORS: Record<string, string> = {
+  max_files: "Zu viele Dateien auf einmal.",
+  max_file_size: "Datei ist zu groß.",
+  accept: "Dieser Dateityp wird nicht unterstützt.",
+};
+
+// Ausstehende Anhänge über dem Eingabefeld, mit Entfernen.
+function ComposerAttachments() {
+  const { files, remove } = usePromptInputAttachments();
+  if (!files.length) return null;
+  return (
+    <PromptInputHeader>
+      <Attachments variant="inline">
+        {files.map((f) => (
+          <Attachment key={f.id} data={f} onRemove={() => remove(f.id)}>
+            <AttachmentPreview />
+            <AttachmentInfo />
+            <AttachmentRemove label="Entfernen" />
+          </Attachment>
+        ))}
+      </Attachments>
+    </PromptInputHeader>
+  );
+}
+
+function AttachButton() {
+  const { openFileDialog } = usePromptInputAttachments();
+  return (
+    <PromptInputButton aria-label="Datei anhängen" title="Datei anhängen" onClick={openFileDialog}>
+      <PaperclipIcon className="size-4" />
+    </PromptInputButton>
+  );
 }
 
 const fmt = (n?: number) => (n == null ? "–" : n.toLocaleString("de-DE"));
@@ -260,6 +308,12 @@ function ChatBody({
     return () => clearTimeout(t);
   }, [contextHint]);
   const [efforts, setEfforts] = useState<Record<string, Effort>>(saved.efforts ?? {});
+  const [attachError, setAttachError] = useState("");
+  useEffect(() => {
+    if (!attachError) return;
+    const t = setTimeout(() => setAttachError(""), 4000);
+    return () => clearTimeout(t);
+  }, [attachError]);
   useEffect(() => {
     try {
       localStorage.setItem(`orbit-chat-prefs:${chatId}`, JSON.stringify({ modelId, efforts }));
@@ -346,21 +400,28 @@ function ChatBody({
                   .map((p) => (p.type === "text" ? p.text : ""))
                   .join("");
                 const isAssistant = message.role === "assistant";
-                // Leere Assistant-Nachricht (Stream läuft, noch kein Text): zeigt die Schreib-Animation.
-                if (isAssistant && !text) return null;
+                const hasTools = message.parts.some((p) => isToolUIPart(p) || p.type === "file");
+                // Leere Assistant-Nachricht (Stream läuft, noch nichts da): zeigt die Schreib-Animation.
+                if (isAssistant && !text && !hasTools) return null;
+                // Reihenfolge bleibt: Text als Bubble, Tool-Aufrufe und Dateien als eigene Zeilen dazwischen.
                 const content = (
-                  <MessageContent
-                    className={isAssistant ? BUBBLE : undefined}
-                    style={isAssistant ? undefined : bubbleStyle(userColor)}
-                  >
-                    {message.parts.map((part, i) =>
-                      part.type === "text" ? (
-                        <MessageResponse key={`${message.id}-${i}`}>
-                          {part.text}
-                        </MessageResponse>
-                      ) : null,
-                    )}
-                  </MessageContent>
+                  <div className={cn("flex min-w-0 flex-col gap-2", isAssistant ? "items-start" : "items-end")}>
+                    {message.parts.map((part, i) => {
+                      const key = `${message.id}-${i}`;
+                      if (isToolUIPart(part)) return <ToolCall key={key} part={part} />;
+                      if (part.type === "file") return <FileCard key={key} file={part} />;
+                      if (part.type !== "text" || !part.text) return null;
+                      return (
+                        <MessageContent
+                          key={key}
+                          className={isAssistant ? BUBBLE : undefined}
+                          style={isAssistant ? undefined : bubbleStyle(userColor)}
+                        >
+                          <MessageResponse>{part.text}</MessageResponse>
+                        </MessageContent>
+                      );
+                    })}
+                  </div>
                 );
                 return (
                   <Message
@@ -395,7 +456,7 @@ function ChatBody({
                 (status === "streaming" &&
                   !messages
                     .at(-1)
-                    ?.parts.some((p) => p.type === "text" && p.text))) && (
+                    ?.parts.some((p) => (p.type === "text" && p.text) || isToolUIPart(p)))) && (
                 <TypingBubble avatar={avatar} color={color} />
               )}
             </>
@@ -404,9 +465,19 @@ function ChatBody({
         <ConversationScrollButton className="z-20" />
       </Conversation>
       <div className="px-3 pt-2 pb-3">
+        {attachError && (
+          <p role="alert" className="mb-1.5 px-1 text-xs text-destructive">
+            {attachError}
+          </p>
+        )}
         <PromptInput
           className="chat-prompt w-full"
-          onSubmit={({ text }) => {
+          multiple
+          globalDrop
+          maxFiles={10}
+          maxFileSize={25 * 1024 * 1024}
+          onError={(e) => setAttachError(ATTACH_ERRORS[e.code] ?? e.message)}
+          onSubmit={async ({ text, files }) => {
             if (modelId === NO_MODEL) {
               // Dev: nur eigene Nachricht anhängen, kein Request.
               const body = fillTo(text, chars);
@@ -418,17 +489,24 @@ function ChatBody({
               ]);
               return;
             }
-            if (text.trim() && model) {
-              void touchChat(chatId);
-              sendMessage({ text }, { metadata: { model: model.id, effort, context } });
+            if (!model || (!text.trim() && !files.length)) return;
+            const prepared = await Promise.all(files.map(shrinkImage));
+            const tooBig = prepared.find((f) => (dataUrlBytes(f.url) ?? 0) > MAX_FILE);
+            if (tooBig) {
+              setAttachError(`${tooBig.filename ?? "Datei"} ist zu groß (max. ${formatBytes(MAX_FILE)}).`);
+              throw new Error("Datei zu groß"); // Eingabe bleibt erhalten
             }
+            void touchChat(chatId);
+            sendMessage({ text, files: prepared }, { metadata: { model: model.id, effort, context } });
           }}
         >
+          <ComposerAttachments />
           <PromptInputBody>
             <PromptInputTextarea placeholder="Was möchtest du wissen?" className="min-h-10" onKeyDown={continueList} />
           </PromptInputBody>
           <PromptInputFooter>
             <PromptInputTools>
+              <AttachButton />
               <ModelPicker models={models} modelId={modelId} onModelChange={setModelId} />
               {modelId === NO_MODEL && <CharsPicker chars={chars} onCharsChange={setChars} />}
               {model && effort && (

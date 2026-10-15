@@ -45,13 +45,13 @@ export type ToolHeaderProps = {
 );
 
 const statusLabels: Record<ToolPart["state"], string> = {
-  "approval-requested": "Awaiting Approval",
-  "approval-responded": "Responded",
-  "input-available": "Running",
-  "input-streaming": "Pending",
-  "output-available": "Completed",
-  "output-denied": "Denied",
-  "output-error": "Error",
+  "approval-requested": "Wartet auf Freigabe",
+  "approval-responded": "Beantwortet",
+  "input-available": "Läuft",
+  "input-streaming": "Wartet",
+  "output-available": "Fertig",
+  "output-denied": "Abgelehnt",
+  "output-error": "Fehler",
 };
 
 const statusIcons: Record<ToolPart["state"], ReactNode> = {
@@ -85,7 +85,7 @@ export const ToolHeader = ({
   return (
     <CollapsibleTrigger
       className={cn(
-        "flex w-full items-center justify-between gap-4 p-3",
+        "group/trigger flex w-full items-center justify-between gap-4 p-3",
         className
       )}
       {...props}
@@ -95,7 +95,7 @@ export const ToolHeader = ({
         <span className="font-medium text-sm">{title ?? derivedName}</span>
         {getStatusBadge(state)}
       </div>
-      <ChevronDownIcon className="size-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+      <ChevronDownIcon className="size-4 text-muted-foreground -rotate-90 transition-transform group-data-[panel-open]/trigger:rotate-0" />
     </CollapsibleTrigger>
   );
 };
@@ -119,7 +119,7 @@ export type ToolInputProps = ComponentProps<"div"> & {
 export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
   <div className={cn("space-y-2 overflow-hidden", className)} {...props}>
     <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-      Parameters
+      Eingabe
     </h4>
     <div className="rounded-md bg-muted/50">
       <CodeBlock code={JSON.stringify(input, null, 2)} language="json" />
@@ -155,7 +155,7 @@ export const ToolOutput = ({
   return (
     <div className={cn("space-y-2", className)} {...props}>
       <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-        {errorText ? "Error" : "Result"}
+        {errorText ? "Fehler" : "Ergebnis"}
       </h4>
       <div
         className={cn(

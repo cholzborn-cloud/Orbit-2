@@ -7,6 +7,7 @@ import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/lib/db";
+import { createSandbox, deleteSandbox } from "@/lib/daytona";
 import { insertBotSchema, botFormSchema } from "@/lib/db/bot-schema";
 import { bots, chatMembers, chats } from "@/lib/db/schema";
 
@@ -35,15 +36,28 @@ export async function createBot(input: unknown): Promise<CreateBotResult> {
   });
   if (!row.success) return { ok: false, error: row.error.issues[0].message };
 
+  let sandboxId: string;
+  try {
+    sandboxId = await createSandbox(id);
+  } catch (e) {
+    console.error("Sandbox konnte nicht erstellt werden", e);
+    return { ok: false, error: "Sandbox konnte nicht erstellt werden." };
+  }
+
   const chatId = nanoid();
   const stmts: BatchItem<"pg">[] = [];
   if (row.data.isMain) stmts.push(clearMain(userId));
   stmts.push(
-    db.insert(bots).values(row.data),
+    db.insert(bots).values({ ...row.data, sandboxId }),
     db.insert(chats).values({ id: chatId, userId, kind: "direct" }),
     db.insert(chatMembers).values({ chatId, botId: id }),
   );
-  await db.batch(stmts as [BatchItem<"pg">, ...BatchItem<"pg">[]]);
+  try {
+    await db.batch(stmts as [BatchItem<"pg">, ...BatchItem<"pg">[]]);
+  } catch (e) {
+    await deleteSandbox(sandboxId).catch(() => {}); // keine verwaiste Sandbox zurücklassen
+    throw e;
+  }
   revalidatePath("/");
   return { ok: true, id };
 }
@@ -68,6 +82,12 @@ export async function deleteBot(id: string): Promise<CreateBotResult> {
   const { userId } = await auth();
   if (!userId) return { ok: false, error: "Bitte melde dich an." };
 
+  const [bot] = await db
+    .select({ sandboxId: bots.sandboxId })
+    .from(bots)
+    .where(and(eq(bots.id, id), eq(bots.userId, userId)));
+  if (!bot) return { ok: false, error: "Orbi nicht gefunden." };
+
   // Direktchats des Bots gehen mit; Mitgliedschaften in Gruppen verschwinden per Cascade.
   const direct = await db
     .select({ id: chats.id })
@@ -81,6 +101,11 @@ export async function deleteBot(id: string): Promise<CreateBotResult> {
   }
   stmts.push(db.delete(bots).where(and(eq(bots.id, id), eq(bots.userId, userId))));
   await db.batch(stmts as [BatchItem<"pg">, ...BatchItem<"pg">[]]);
+  if (bot.sandboxId) {
+    await deleteSandbox(bot.sandboxId).catch((e) =>
+      console.error("Sandbox konnte nicht gelöscht werden", bot.sandboxId, e),
+    );
+  }
   revalidatePath("/");
   return { ok: true, id };
 }

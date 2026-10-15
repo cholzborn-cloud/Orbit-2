@@ -37,19 +37,14 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { botFormSchema, type BotFormValues } from "@/lib/db/bot-schema";
+import { describeJob } from "@/lib/job-descriptions";
 import { cn } from "@/lib/utils";
 
-const PRESETS = [
-  { job: "Begleiter", instructions: "Antworte freundlich und kurz." },
-  { job: "Recherche", instructions: "Antworte kurz, nenne Quellen und frage nach, bevor du etwas Destruktives tust." },
-  { job: "Programmieren", instructions: "Schreibe sauberen, einfachen Code. Erkläre kurz, was du änderst." },
-  { job: "Code-Review", instructions: "Prüfe Code auf Fehler, Lesbarkeit und Sicherheit. Sei konkret." },
-  { job: "Texte", instructions: "Verbessere Texte, ohne den Stil des Autors zu ändern." },
-  { job: "Lernen", instructions: "Erkläre Schritt für Schritt und prüfe das Verständnis mit kurzen Fragen." },
-  { job: "Übersetzen", instructions: "Übersetze natürlich und treffend. Frage bei Mehrdeutigkeit nach." },
-  { job: "Ideen", instructions: "Liefere viele kreative Ideen, kurz und konkret. Dann die beste empfehlen." },
-  { job: "Planen", instructions: "Teile Aufgaben in kleine Schritte und setze klare Prioritäten." },
-];
+// Verhalten wird mit der Standardbeschreibung der Aufgabe vorbelegt.
+const PRESETS = ["Begleiter", "Recherche", "Programmieren", "Code-Review", "Texte", "Lernen", "Übersetzen", "Ideen", "Planen"].map(
+  (job) => ({ job, label: job, instructions: describeJob(job, false) }),
+);
+const CUSTOM = { job: "", label: "Eigener", instructions: "" };
 
 const MAIN_JOB = "Koordinator";
 
@@ -90,6 +85,7 @@ export function BotDialog({
   const avatar = form.watch("avatar");
   const color = form.watch("color");
   const isMain = !!form.watch("isMain");
+  const isCustom = !isMain && !PRESETS.some((p) => p.job === job);
 
   const onSubmit = form.handleSubmit((values) =>
     startTransition(async () => {
@@ -215,8 +211,13 @@ export function BotDialog({
                     onCheckedChange={(checked) => {
                       field.onChange(checked);
                       // Hauptbot hat eine feste Aufgabe, keine frei wählbare Profession.
-                      if (checked) form.setValue("job", MAIN_JOB, { shouldValidate: true });
-                      else if (form.getValues("job") === MAIN_JOB) form.setValue("job", PRESETS[0].job);
+                      if (checked) {
+                        form.setValue("job", MAIN_JOB, { shouldValidate: true });
+                        form.setValue("instructions", describeJob(MAIN_JOB, true));
+                      } else if (form.getValues("job") === MAIN_JOB) {
+                        form.setValue("job", PRESETS[0].job);
+                        form.setValue("instructions", PRESETS[0].instructions);
+                      }
                     }}
                   />
                 )}
@@ -227,28 +228,33 @@ export function BotDialog({
             <Field data-invalid={!!errors.job}>
               <FieldLabel htmlFor="bot-job">Aufgabe</FieldLabel>
               <div className="flex flex-wrap gap-1.5">
-                {PRESETS.map((p) => (
+                {[...PRESETS, CUSTOM].map((p) => {
+                  const selected = p === CUSTOM ? isCustom : job === p.job;
+                  return (
                   <Button
-                    key={p.job}
+                    key={p.label}
                     type="button"
                     size="sm"
                     variant="outline"
                     disabled={isMain}
-                    aria-pressed={job === p.job}
+                    aria-pressed={selected}
                     className={cn(
                       "rounded-full",
-                      job === p.job
+                      selected
                         ? "border-white bg-white text-black hover:bg-white hover:text-black active:bg-white dark:bg-white dark:hover:bg-white dark:active:bg-white"
                         : "dark:bg-transparent dark:hover:bg-white/10 active:bg-white/15",
                     )}
                     onClick={() => {
-                      form.setValue("job", p.job, { shouldValidate: true });
+                      // Eigener Orbi: Aufgabe und Verhalten leer, Nutzer füllt beides selbst.
+                      form.setValue("job", p.job, { shouldValidate: p !== CUSTOM });
                       form.setValue("instructions", p.instructions);
+                      if (p === CUSTOM) form.setFocus("job");
                     }}
                   >
-                    {p.job}
+                    {p.label}
                   </Button>
-                ))}
+                  );
+                })}
               </div>
               <Input id="bot-job" placeholder="Begleiter" readOnly={isMain} aria-invalid={!!errors.job} {...form.register("job")} />
               <FieldError errors={[errors.job]} />
@@ -260,7 +266,7 @@ export function BotDialog({
                 id="bot-instructions"
                 rows={4}
                 className="resize-none"
-                placeholder="Antworte kurz, nenne Quellen und frage nach, bevor du etwas Destruktives tust."
+                placeholder={describeJob(job ?? "", isMain)}
                 {...form.register("instructions")}
               />
               <FieldError errors={[errors.instructions]} />

@@ -30,6 +30,8 @@ import {
 } from "react";
 import { Streamdown } from "streamdown";
 
+import { markdownComponents, markdownTranslations } from "@/components/markdown-extras";
+
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: UIMessage["role"];
 };
@@ -331,6 +333,8 @@ export const MessageResponse = memo(
         className
       )}
       plugins={streamdownPlugins}
+      components={markdownComponents}
+      translations={markdownTranslations}
       {...props}
     />
   ),
