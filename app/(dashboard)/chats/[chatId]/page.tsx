@@ -18,7 +18,7 @@ export default async function ChatPage({
 
   const { chatId } = await params;
   const chat = await getChat(userId, chatId);
-  // Gruppenchats vorerst ignoriert: es zählt das erste Mitglied.
+  // Direktchat: das einzige Mitglied. Gruppe: erstes Mitglied als Standard-Orbi.
   const bot = chat?.members[0]?.bot;
   // Gelöschter Orbi oder alte URL: zurück zur Startseite (dort "Neuer Orbi"), statt 404.
   if (!chat || !bot) redirect("/");
@@ -32,6 +32,8 @@ export default async function ChatPage({
     isMain: bot.isMain,
   };
 
+  const isGroup = chat.kind === "group";
+
   return (
     // Links Chat (Header + Verlauf), rechts das Panel, das der Header auf- und zuklappt.
     <ResizablePanelGroup orientation="horizontal" className="min-h-0 flex-1">
@@ -43,12 +45,18 @@ export default async function ChatPage({
           avatar={bot.avatar}
           color={bot.color}
           bot={editable}
-          // Kopfzeile zeigt alle Mitglieder als Dots (max. 3 plus "+N").
-          dots={chat.members.map((m) => ({ avatar: m.bot.avatar, color: m.bot.color }))}
+          title={isGroup ? (chat.name ?? "Gruppe") : undefined}
+          // Kopfzeile zeigt alle Mitglieder als Gruppen-Avatar; Gruppe wählt daraus den Orbi je Nachricht.
+          members={chat.members.map((m) => ({ id: m.bot.id, name: m.bot.name, avatar: m.bot.avatar, color: m.bot.color }))}
         />
       </ResizablePanel>
-      <ResizableHandle />
-      <ChatSidePanel key={chatId} bot={editable} chatId={chatId} />
+      {/* Gruppen haben kein Panel (kein Bearbeiten, kein Computer). */}
+      {!isGroup && (
+        <>
+          <ResizableHandle />
+          <ChatSidePanel key={chatId} bot={editable} chatId={chatId} />
+        </>
+      )}
     </ResizablePanelGroup>
   );
 }

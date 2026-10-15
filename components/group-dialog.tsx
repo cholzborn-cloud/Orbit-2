@@ -42,7 +42,7 @@ export function GroupDialog({
       setName("");
       setIds([]);
       setError(undefined);
-      router.refresh();
+      router.push(`/chats/${res.id}`);
     });
 
   return (

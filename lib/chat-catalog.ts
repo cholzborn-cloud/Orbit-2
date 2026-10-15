@@ -30,6 +30,7 @@ export const fillTo = (text: string, n: number) =>
 
 // Metadaten einer Antwort (Start und Ende werden zusammengeführt).
 export type ChatMetadata = {
+  botId?: string; // antwortender Orbi (Gruppenchat)
   model?: string;
   effort?: string;
   startedAt?: number;

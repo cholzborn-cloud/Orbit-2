@@ -24,6 +24,7 @@ async function touchChat(chatId: string) {
 }
 
 type ChatBot = {
+  id: string;
   name: string;
   job: string;
   instructions: string | null;
@@ -36,7 +37,7 @@ type ChatBot = {
 async function loadChatBots(chatId: string) {
   if (!process.env.DATABASE_URL) return [];
   return (await neon(process.env.DATABASE_URL)`
-    select b.name, b.job, b.instructions, b.is_main, b.sandbox_id,
+    select b.id, b.name, b.job, b.instructions, b.is_main, b.sandbox_id,
       case when b.is_main then coalesce(
         (select json_agg(json_build_object('name', o.name, 'job', o.job) order by o.created_at)
          from bots o where o.user_id = b.user_id and o.id <> b.id),
@@ -87,14 +88,17 @@ export const orbitChat = chat
       effort: z.string().optional(),
       // Kontext aus: nur die neue Nachricht, kein Verlauf.
       context: z.boolean().default(true),
+      // Gruppenchat: Orbi, der diesen Turn beantwortet (aus der Auswahl im Composer).
+      botId: z.string().optional(),
     }),
   })
   .agent({
     id: "orbit-chat",
     // Auf der Config, damit toModelOutput (Screenshots) auch in späteren Turns greift.
     tools: async ({ chatId }) => {
-      const [bot] = await loadChatBots(chatId);
-      return bot?.sandbox_id ? sandboxTools(bot.sandbox_id) : {};
+      const bots = await loadChatBots(chatId);
+      // Gruppenchats bewusst ohne Tools: jeder Orbi hätte eine eigene Sandbox.
+      return bots.length === 1 && bots[0].sandbox_id ? sandboxTools(bots[0].sandbox_id) : {};
     },
     turnTimeout: "5m",
     actionSchema: z.object({ type: z.literal("clear") }),
@@ -120,7 +124,7 @@ export const orbitChat = chat
       chat.setUIMessageStreamOptions({
         messageMetadata: ({ part }): ChatMetadata | undefined => {
           if (part.type === "start")
-            return { model: model.label, effort: wantsEffort ? effort : undefined, startedAt: Date.now() };
+            return { botId: clientData?.botId, model: model.label, effort: wantsEffort ? effort : undefined, startedAt: Date.now() };
           if (part.type === "finish")
             return {
               inputTokens: part.totalUsage.inputTokens,
@@ -136,7 +140,13 @@ export const orbitChat = chat
       chat.endRun();
 
       // Pro Turn neu geladen, damit Änderungen am Orbi sofort gelten.
-      const bots = await loadChatBots(chatId);
+      const all = await loadChatBots(chatId);
+      // Gruppe: gewählter Orbi antwortet (ohne Sandbox), die übrigen stehen im Prompt als Mitglieder.
+      const picked = all.find((b) => b.id === clientData?.botId) ?? all[0];
+      const bots =
+        all.length > 1 && picked
+          ? [{ ...picked, sandbox_id: null }, ...all.filter((b) => b !== picked)]
+          : all;
       const system = systemPrompt(bots);
 
       // Anhänge der neuen Nachricht auch in die Sandbox legen; Fehler blockieren die Antwort nicht.

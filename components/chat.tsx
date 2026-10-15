@@ -35,6 +35,11 @@ import {
   PromptInputButton,
   PromptInputFooter,
   PromptInputHeader,
+  PromptInputSelect,
+  PromptInputSelectContent,
+  PromptInputSelectItem,
+  PromptInputSelectTrigger,
+  PromptInputSelectValue,
   PromptInputSubmit,
   PromptInputTextarea,
   PromptInputTools,
@@ -232,7 +237,8 @@ type ChatProps = {
   avatar?: string | null;
   color?: string | null;
   bot: EditableBot;
-  dots: { avatar: string; color: string | null }[];
+  members: { id: string; name: string; avatar: string; color: string | null }[];
+  title?: string; // nur bei Gruppen: Gruppenname
 };
 
 function readSession(chatId: string) {
@@ -273,7 +279,8 @@ function ChatBody({
   avatar: avatarProp,
   color,
   bot,
-  dots,
+  members,
+  title,
   transport,
   initialMessages,
 }: ChatProps & {
@@ -281,6 +288,11 @@ function ChatBody({
   initialMessages: UIMessage<ChatMetadata>[];
 }) {
   const avatar = avatarProp || "erdi";
+  // Gruppe: Orbi, der die nächste Nachricht beantwortet.
+  const isGroup = title !== undefined;
+  const [botId, setBotId] = useState(members[0]?.id);
+  const member = (id?: string) => members.find((m) => m.id === id);
+  const picked = member(botId);
   // Zuletzt gewähltes Modell und Stufen je Chat, lokal im Browser.
   const [saved] = useState(() => {
     try {
@@ -377,11 +389,11 @@ function ChatBody({
     (model && efforts[model.id]) ||
     (levels.includes("medium") ? "medium" : levels[0]);
   // Agent validiert clientData schon beim Boot (auch bei Fortsetzung): Standardwerte am Transport setzen.
-  transport.setClientData({ model: modelId, effort, context });
+  transport.setClientData({ model: modelId, effort, context, botId });
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
-      <ChatHeader ref={header} bot={bot} dots={dots} />
+      <ChatHeader ref={header} bot={bot} dots={members} title={title} />
       {/* Schnelle Feder: neue Nachrichten rollen zügig nach unten statt zu springen. */}
       <Conversation resize={SCROLL_SPRING} initial="instant" contextRef={conv}>
         <ConversationContent className="w-full px-3 pt-0">
@@ -401,6 +413,7 @@ function ChatBody({
                   .join("");
                 const isAssistant = message.role === "assistant";
                 const hasTools = message.parts.some((p) => isToolUIPart(p) || p.type === "file");
+                const who = member(message.metadata?.botId);
                 // Leere Assistant-Nachricht (Stream läuft, noch nichts da): zeigt die Schreib-Animation.
                 if (isAssistant && !text && !hasTools) return null;
                 // Reihenfolge bleibt: Text als Bubble, Tool-Aufrufe und Dateien als eigene Zeilen dazwischen.
@@ -431,7 +444,7 @@ function ChatBody({
                     className={cn("max-w-[80%]", !restoredIds.current.has(message.id) && ENTER)}
                   >
                     {isAssistant ? (
-                      <BotRow avatar={avatar} color={color}>
+                      <BotRow avatar={who?.avatar ?? avatar} color={who ? who.color : color}>
                         {content}
                       </BotRow>
                     ) : (
@@ -457,7 +470,7 @@ function ChatBody({
                   !messages
                     .at(-1)
                     ?.parts.some((p) => (p.type === "text" && p.text) || isToolUIPart(p)))) && (
-                <TypingBubble avatar={avatar} color={color} />
+                <TypingBubble avatar={picked?.avatar ?? avatar} color={picked ? picked.color : color} />
               )}
             </>
           )}
@@ -497,7 +510,7 @@ function ChatBody({
               throw new Error("Datei zu groß"); // Eingabe bleibt erhalten
             }
             void touchChat(chatId);
-            sendMessage({ text, files: prepared }, { metadata: { model: model.id, effort, context } });
+            sendMessage({ text, files: prepared }, { metadata: { model: model.id, effort, context, botId } });
           }}
         >
           <ComposerAttachments />
@@ -506,6 +519,26 @@ function ChatBody({
           </PromptInputBody>
           <PromptInputFooter>
             <PromptInputTools>
+              {isGroup && (
+                <PromptInputSelect value={botId} onValueChange={(v) => typeof v === "string" && setBotId(v)}>
+                  <PromptInputSelectTrigger size="sm" aria-label="Orbi wählen">
+                    <PromptInputSelectValue>
+                      {(id: string) => {
+                        const m = member(id);
+                        return m && <><ChatAvatar seed={m.avatar} color={m.color} className="size-4" />{m.name}</>;
+                      }}
+                    </PromptInputSelectValue>
+                  </PromptInputSelectTrigger>
+                  <PromptInputSelectContent>
+                    {members.map((m) => (
+                      <PromptInputSelectItem key={m.id} value={m.id}>
+                        <ChatAvatar seed={m.avatar} color={m.color} className="size-4" />
+                        {m.name}
+                      </PromptInputSelectItem>
+                    ))}
+                  </PromptInputSelectContent>
+                </PromptInputSelect>
+              )}
               <AttachButton />
               <ModelPicker models={models} modelId={modelId} onModelChange={setModelId} />
               {modelId === NO_MODEL && <CharsPicker chars={chars} onCharsChange={setChars} />}

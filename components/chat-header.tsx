@@ -5,7 +5,7 @@ import { useImperativeHandle, useLayoutEffect, useRef, type Ref, type RefObject 
 import type { StickToBottomContext } from "use-stick-to-bottom";
 
 import type { EditableBot } from "@/components/bot-dialog";
-import { ChatAvatar } from "@/components/chat-avatar";
+import { GroupAvatar } from "@/components/group-avatar";
 import { PANEL_TOGGLE_EVENT } from "@/components/chat-side-panel";
 import { HEADER_SNAP_MS, headerProgress, snapTarget } from "@/lib/header-snap";
 
@@ -100,7 +100,6 @@ const AV_BIG = 50;
 const AV_SMALL = 36;
 const STACK_GAP = 22;
 const ROW_GAP = 8;
-const OVERLAP = 0.38;
 const CHEVRON = 12;
 const PAD_X = 14;
 const GAP = 7;
@@ -108,11 +107,13 @@ const GAP = 7;
 export function ChatHeader({
   ref,
   bot,
-  dots: allDots,
+  dots,
+  title,
 }: {
   ref: Ref<ChatHeaderHandle>;
   bot: EditableBot;
   dots: Dot[];
+  title?: string; // Gruppenname; dann ohne Panel-Knopf
 }) {
   const root = useRef<HTMLDivElement>(null);
   const band = useRef<HTMLDivElement>(null);
@@ -121,9 +122,6 @@ export function ChatHeader({
   const text = useRef<HTMLSpanElement>(null);
   const state = useRef({ p: 0, width: 400, text24: 0 });
 
-  const dots = allDots.slice(0, 3);
-  const extra = Math.max(0, allDots.length - dots.length);
-
   // Schreibt nur Styles, kein React-Render: läuft bei jedem Scroll-Ereignis.
   const render = () => {
     const { p, width, text24 } = state.current;
@@ -131,10 +129,10 @@ export function ChatHeader({
     const size = AV_BIG - p * (AV_BIG - AV_SMALL);
     const nameH = 44 - p * 8;
     const fs = 24 - p * 8;
-    const avatarW = size + Math.max(0, dots.length - 1) * size * (1 - OVERLAP) + (extra > 0 ? 30 : 0);
+    const avatarW = size;
     const maxName = Math.max(80, width - avatarW - 48);
     // Textbreite einmal bei 24 px gemessen, skaliert linear mit der Schrift.
-    const nameW = Math.min(maxName, text24 * (fs / 24) + PAD_X * 2 + GAP + CHEVRON);
+    const nameW = Math.min(maxName, text24 * (fs / 24) + PAD_X * 2 + (title ? 0 : GAP + CHEVRON));
 
     const tx = smooth(clamp01(p * 2));
     const ty = smooth(clamp01((p - 0.5) * 2));
@@ -194,34 +192,24 @@ export function ChatHeader({
         className="absolute top-0 left-0 flex"
         style={{ height: "var(--s)", ["--s" as string]: `${AV_BIG}px` }}
       >
-        {/* Rahmen = sichtbare Größe, damit Abstände zur Pille stimmen; weitere Dots überlappen. */}
-        {dots.map((d, i) => (
-          <ChatAvatar
-            key={i}
-            seed={d.avatar}
-            color={d.color}
-            className="shrink-0"
-            style={{ width: "var(--s)", height: "var(--s)", marginLeft: i ? `calc(var(--s) * -${OVERLAP})` : 0 }}
-          />
-        ))}
-        {extra > 0 && (
-          <span className="flex w-[30px] shrink-0 items-center justify-center text-xs font-semibold">+{extra}</span>
-        )}
+        {/* Gruppe: alle Mitglieder in einem Avatar gleicher Größe. */}
+        <GroupAvatar members={dots} style={{ width: "var(--s)", height: "var(--s)" }} />
       </div>
       <div ref={pill} className="pointer-events-auto absolute top-0 left-0 w-max" style={{ height: 44, fontSize: 24 }}>
         {/* Klick klappt das rechte Panel (ChatSidePanel) auf und zu. */}
         <button
           type="button"
-          aria-label={`Kontakt ${bot.name}`}
+          aria-label={title ?? `Kontakt ${bot.name}`}
+          disabled={!!title}
           onClick={() => window.dispatchEvent(new Event(PANEL_TOGGLE_EVENT))}
           // Glas wie orbitGlass(22, interactive): Blur, heller Schleier, feiner Rand; bei mehr Kontrast deckend.
-          className="flex h-full max-w-full items-center rounded-[22px] bg-foreground/[0.06] font-semibold shadow-sm ring-1 ring-foreground/10 backdrop-blur-xl transition-colors hover:bg-foreground/10 contrast-more:bg-background contrast-more:ring-foreground/25"
+          className="flex h-full max-w-full items-center rounded-[22px] bg-foreground/[0.06] font-semibold shadow-sm ring-1 ring-foreground/10 backdrop-blur-xl transition-colors enabled:hover:bg-foreground/10 contrast-more:bg-background contrast-more:ring-foreground/25"
           style={{ paddingInline: PAD_X, gap: GAP }}
         >
           <span ref={text} className="truncate whitespace-nowrap">
-            {bot.name}
+            {title ?? bot.name}
           </span>
-          <ChevronRightIcon className="shrink-0" style={{ width: CHEVRON, height: CHEVRON }} />
+          {!title && <ChevronRightIcon className="shrink-0" style={{ width: CHEVRON, height: CHEVRON }} />}
         </button>
       </div>
     </div>

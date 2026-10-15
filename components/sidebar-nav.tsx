@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 
 import { BotDialog } from "@/components/bot-dialog";
 import { ChatAvatar } from "@/components/chat-avatar";
+import { GroupAvatar } from "@/components/group-avatar";
+import { GroupDialog } from "@/components/group-dialog";
 import { SidebarSearch } from "@/components/sidebar-search";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -58,43 +60,6 @@ export type SidebarGroupChat = {
   members: { avatar: SidebarBot["avatar"]; color: string | null }[];
 };
 
-// Position und Größe (in % der Fläche) der Mitglieder-Avatare, je nach Anzahl.
-const CLUSTER: Record<1 | 2 | 3 | 4 | 5, { size: number; at: [number, number][] }> = {
-  1: { size: 100, at: [[0, 0]] },
-  2: { size: 72, at: [[0, 0], [28, 28]] },
-  3: { size: 62, at: [[19, 0], [0, 38], [38, 38]] },
-  4: { size: 58, at: [[0, 0], [42, 0], [0, 42], [42, 42]] },
-  5: { size: 42, at: [[8, 0], [50, 0], [0, 54], [29, 54], [58, 54]] },
-};
-
-function GroupAvatar({ members, className }: { members: SidebarGroupChat["members"]; className?: string }) {
-  // Ab 6 Mitgliedern: 4 Avatare und ein "+N".
-  const extra = members.length > 5 ? members.length - 4 : 0;
-  const shown = members.slice(0, extra ? 4 : 5);
-  const layout = CLUSTER[Math.max(1, extra ? 5 : shown.length) as 1 | 2 | 3 | 4 | 5];
-  const box = (i: number) => ({
-    width: `${layout.size}%`,
-    height: `${layout.size}%`,
-    left: `${layout.at[i][0]}%`,
-    top: `${layout.at[i][1]}%`,
-  });
-  return (
-    <span className={cn("relative block shrink-0", className)}>
-      {shown.map((m, i) => (
-        <ChatAvatar key={i} seed={m.avatar} color={m.color} className="absolute" style={box(i)} />
-      ))}
-      {extra > 0 && (
-        <span
-          className="absolute flex items-center justify-center rounded-full bg-muted text-[0.5rem] font-semibold leading-none text-muted-foreground"
-          style={box(4)}
-        >
-          +{extra}
-        </span>
-      )}
-    </span>
-  );
-}
-
 const EASE = "duration-300 ease-[cubic-bezier(.32,.72,0,1)]";
 const ROW =
   "h-14 data-active:font-normal hover:bg-sidebar-accent/60 data-active:hover:bg-sidebar-accent/70 gap-3 rounded-xl group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:rounded-full";
@@ -111,6 +76,7 @@ export function SidebarNav({
   groups?: SidebarGroupChat[];
 }) {
   const [creatingBot, setCreatingBot] = useState(false);
+  const [creatingGroup, setCreatingGroup] = useState(false);
   // Aktiver Chat aus der Route /chats/:chatId.
   const { chatId: activeChatId } = useParams<{ chatId?: string }>();
   const [query, setQuery] = useState("");
@@ -145,8 +111,7 @@ export function SidebarNav({
               <DropdownMenuItem onClick={() => setCreatingBot(true)}>
                 <PlusIcon /> Neuen Orbi erstellen
               </DropdownMenuItem>
-              {/* Öffnet bewusst nichts. */}
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setCreatingGroup(true)}>
                 <UsersIcon /> Gruppe erstellen
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -208,8 +173,8 @@ export function SidebarNav({
             <SidebarMenu className="gap-1 group-data-[collapsible=icon]:items-center">
               {shownGroups.map((g) => (
                 <SidebarMenuItem key={g.id}>
-                  <SidebarMenuButton size="lg" className={ROW} tooltip={g.name}>
-                    <GroupAvatar members={g.members} className="size-10 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)]" />
+                  <SidebarMenuButton render={<Link href={`/chats/${g.id}`} />} size="lg" className={ROW} tooltip={g.name} isActive={g.id === activeChatId}>
+                    <GroupAvatar members={g.members} className="size-7 transition-[width,height] duration-300 ease-[cubic-bezier(.32,.72,0,1)]" />
                     <div className={LABEL}>
                       <span className="truncate font-medium">{g.name}</span>
                       <span className="text-xs text-muted-foreground">{g.members.length} Orbis</span>
@@ -224,6 +189,7 @@ export function SidebarNav({
       </SidebarContent>
 
       <BotDialog open={creatingBot} onOpenChange={setCreatingBot} />
+      <GroupDialog bots={main ? [main, ...bots] : bots} open={creatingGroup} onOpenChange={setCreatingGroup} />
     </>
   );
 }

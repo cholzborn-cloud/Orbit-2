@@ -15,11 +15,11 @@ export async function AppSidebar() {
   const { userId } = await auth();
   if (!userId) return null;
 
-  const { main, bots } = await getSidebarBots(userId);
+  const { main, bots, groups } = await getSidebarBots(userId);
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarNav main={main} bots={bots} />
+      <SidebarNav main={main} bots={bots} groups={groups} />
       <SidebarFooter className="shrink-0 px-3 pb-3">
         <SidebarMenu className="group-data-[collapsible=icon]:items-center">
           <SidebarMenuItem>

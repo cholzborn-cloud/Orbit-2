@@ -1,10 +1,10 @@
 import { desc, eq } from "drizzle-orm";
 
-import type { SidebarBot } from "@/components/sidebar-nav";
+import type { SidebarBot, SidebarGroupChat } from "@/components/sidebar-nav";
 import { db } from "@/lib/db";
 import { chats } from "@/lib/db/schema";
 
-// Direktchats des Clerk-Nutzers, neueste zuerst. Gruppenchats werden vorerst ignoriert.
+// Direkt- und Gruppenchats des Clerk-Nutzers, neueste zuerst.
 // Der Bot eines Direktchats ist das erste Mitglied. Der Hauptbot wird hier abgetrennt.
 export async function getSidebarBots(userId: string) {
   const rows = await db.query.chats.findMany({
@@ -27,7 +27,16 @@ export async function getSidebarBots(userId: string) {
       lastMessageAt: lastMessageAt.toISOString(),
     }));
 
+  const groups: SidebarGroupChat[] = rows
+    .filter((c) => c.kind === "group")
+    .map((c) => ({
+      id: c.id,
+      name: c.name ?? "Gruppe",
+      members: c.members.map(({ bot: b }) => ({ avatar: b.avatar as SidebarBot["avatar"], color: b.color })),
+    }));
+
   return {
+    groups,
     main: all.find((b) => b.isMain) ?? null,
     bots: all.filter((b) => !b.isMain),
   };
