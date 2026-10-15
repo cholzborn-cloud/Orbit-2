@@ -3,7 +3,7 @@
 import { BanIcon } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { createBot, deleteBot, updateBot } from "@/actions/bot";
@@ -69,11 +69,48 @@ export function BotDialog({
   // Nur im Chat gesetzt: leert den Verlauf, der Orbi bleibt.
   onClearHistory?: () => void;
 }) {
-  const [confirmingClear, setConfirmingClear] = useState(false);
-  const router = useRouter();
   const [openState, setOpenState] = useState(false);
   const open = openProp ?? openState;
   const setOpen = onOpenChange ?? setOpenState;
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      {trigger && <DialogTrigger render={trigger} />}
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{bot ? "Orbi bearbeiten" : "Neuer Orbi"}</DialogTitle>
+          <DialogDescription>Gib ihm ein Gesicht, einen Namen und eine Aufgabe.</DialogDescription>
+        </DialogHeader>
+        <BotForm
+          bot={bot}
+          onClearHistory={onClearHistory}
+          onDone={() => setOpen(false)}
+          Footer={DialogFooter}
+          className="-mx-2 max-h-[60svh] overflow-y-auto px-2 py-1"
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Formular ohne Dialog: im Dialog oben und im Seitenpanel des Chats.
+export function BotForm({
+  bot,
+  onDone,
+  onClearHistory,
+  Footer,
+  className,
+}: {
+  bot?: EditableBot;
+  // Nach Speichern, Löschen, Abbrechen und Verlauf leeren.
+  onDone: () => void;
+  onClearHistory?: () => void;
+  Footer: React.ComponentType<{ children: React.ReactNode }>;
+  className?: string;
+}) {
+  const formId = useId();
+  const [confirmingClear, setConfirmingClear] = useState(false);
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const form = useForm<BotFormValues>({
@@ -91,8 +128,8 @@ export function BotDialog({
     startTransition(async () => {
       const res = bot ? await updateBot(bot.id, values) : await createBot(values);
       if (!res.ok) return form.setError("root", { message: res.error });
-      setOpen(false);
-      if (!bot) form.reset();
+      onDone();
+      form.reset(bot ? values : undefined);
       router.refresh();
     }),
   );
@@ -103,20 +140,14 @@ export function BotDialog({
       const res = await deleteBot(bot.id);
       setConfirmingDelete(false);
       if (!res.ok) return form.setError("root", { message: res.error });
-      setOpen(false);
+      onDone();
       router.push("/");
       router.refresh();
     });
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      {trigger && <DialogTrigger render={trigger} />}
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{bot ? "Orbi bearbeiten" : "Neuer Orbi"}</DialogTitle>
-          <DialogDescription>Gib ihm ein Gesicht, einen Namen und eine Aufgabe.</DialogDescription>
-        </DialogHeader>
-        <form id="bot-form" onSubmit={onSubmit} className="-mx-2 max-h-[60svh] overflow-y-auto px-2 py-1">
+    <>
+        <form id={formId} onSubmit={onSubmit} className={className}>
           <FieldGroup>
             <Field>
               <FieldLabel>Planet</FieldLabel>
@@ -274,7 +305,7 @@ export function BotDialog({
             <FieldError>{errors.root?.message}</FieldError>
           </FieldGroup>
         </form>
-        <DialogFooter>
+        <Footer>
           {bot && (
             <Button
               type="button"
@@ -291,14 +322,20 @@ export function BotDialog({
               Verlauf leeren
             </Button>
           )}
-          <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              form.reset();
+              onDone();
+            }}
+          >
             Abbrechen
           </Button>
-          <Button type="submit" form="bot-form" disabled={pending}>
+          <Button type="submit" form={formId} disabled={pending}>
             {bot ? "Speichern" : "Orbi erstellen"}
           </Button>
-        </DialogFooter>
-      </DialogContent>
+        </Footer>
       <AlertDialog open={confirmingDelete} onOpenChange={setConfirmingDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -331,7 +368,7 @@ export function BotDialog({
               onClick={() => {
                 onClearHistory?.();
                 setConfirmingClear(false);
-                setOpen(false);
+                onDone();
               }}
             >
               Verlauf leeren
@@ -339,6 +376,6 @@ export function BotDialog({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Dialog>
+    </>
   );
 }

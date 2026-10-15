@@ -11,8 +11,13 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 <!-- TRIGGER.DEV SKILLS START -->
 ## Trigger.dev agent skills
 
-This project has Trigger.dev agent skills installed in `.agents/skills/`. Before writing or changing Trigger.dev code (background tasks, scheduled tasks, realtime, or chat.agent AI agents), load the most relevant skill: `trigger-authoring-chat-agent`, `trigger-authoring-tasks`, `trigger-chat-agent-advanced`, `trigger-cost-savings`, `trigger-getting-started`, `trigger-realtime-and-frontend`.
+This project has Trigger.dev agent skills installed in `.agents/skills/`. Before writing or changing Trigger.dev code (background tasks, scheduled tasks, realtime, or chat.agent AI agents), load the most relevant skill: `trigger-authoring-tasks`, `trigger-chat-agent-advanced`, `trigger-cost-savings`, `trigger-getting-started`, `trigger-realtime-and-frontend`, `trigger-authoring-chat-agent`.
 <!-- TRIGGER.DEV SKILLS END -->
 
 ## Commits
 - E-Mail-Adressen dürfen automatisch committet werden, ohne Rückfrage (Consti, 15.10.2026). Nicht committen: Passwörter, API-Schlüssel, Tokens (`.env.local` bleibt ignoriert).
+
+## Railway deployment
+- Projekt `orbit-2` (ID `971f998b-ab7a-419f-9f80-e967386235e6`), Environment `production` (`6a9f81a3-ffec-4dac-b283-50f8caaae32e`), Service `orbit-2` (`a614d9d8-a3d3-469c-b7b6-526b6db0390e`). Skill `use-railway` nutzen.
+- Neue Env-Variablen aus `.env.local` auf Railway setzen (Werte nie ausgeben, per `--stdin`).
+- Ausnahme `TRIGGER_SECRET_KEY`: Deployment braucht einen anderen Key als lokal (`.env.local` = Dev-Key). Auf Railway nicht überschreiben, nur auf ausdrücklichen Wunsch mit dem Prod-Key setzen.

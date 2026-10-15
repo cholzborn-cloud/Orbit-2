@@ -381,7 +381,7 @@ function ChatBody({
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
-      <ChatHeader ref={header} bot={bot} dots={dots} chatId={chatId} />
+      <ChatHeader ref={header} bot={bot} dots={dots} />
       {/* Schnelle Feder: neue Nachrichten rollen zügig nach unten statt zu springen. */}
       <Conversation resize={SCROLL_SPRING} initial="instant" contextRef={conv}>
         <ConversationContent className="w-full px-3 pt-0">

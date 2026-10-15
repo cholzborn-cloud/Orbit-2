@@ -4,8 +4,9 @@ import { ChevronRightIcon } from "lucide-react";
 import { useImperativeHandle, useLayoutEffect, useRef, type Ref, type RefObject } from "react";
 import type { StickToBottomContext } from "use-stick-to-bottom";
 
-import { BotDialog, type EditableBot } from "@/components/bot-dialog";
+import type { EditableBot } from "@/components/bot-dialog";
 import { ChatAvatar } from "@/components/chat-avatar";
+import { PANEL_TOGGLE_EVENT } from "@/components/chat-side-panel";
 import { HEADER_SNAP_MS, headerProgress, snapTarget } from "@/lib/header-snap";
 
 // Nur Nutzer-Gesten rasten ein, nicht Autoscroll. Fenster deckt Trackpad-/Touch-Momentum ab.
@@ -108,12 +109,10 @@ export function ChatHeader({
   ref,
   bot,
   dots: allDots,
-  chatId,
 }: {
   ref: Ref<ChatHeaderHandle>;
   bot: EditableBot;
   dots: Dot[];
-  chatId: string;
 }) {
   const root = useRef<HTMLDivElement>(null);
   const band = useRef<HTMLDivElement>(null);
@@ -210,26 +209,20 @@ export function ChatHeader({
         )}
       </div>
       <div ref={pill} className="pointer-events-auto absolute top-0 left-0 w-max" style={{ height: 44, fontSize: 24 }}>
-        {/* Klick öffnet den Dialog zum Bearbeiten des Bots. */}
-        <BotDialog
-          bot={bot}
-          // Chat hört auf dieses Ereignis und leert seinen Verlauf.
-          onClearHistory={() => window.dispatchEvent(new CustomEvent(CLEAR_EVENT, { detail: chatId }))}
-          trigger={
-            <button
-              type="button"
-              aria-label={`Kontakt ${bot.name}`}
-              // Glas wie orbitGlass(22, interactive): Blur, heller Schleier, feiner Rand; bei mehr Kontrast deckend.
-              className="flex h-full max-w-full items-center rounded-[22px] bg-foreground/[0.06] font-semibold shadow-sm ring-1 ring-foreground/10 backdrop-blur-xl transition-colors hover:bg-foreground/10 contrast-more:bg-background contrast-more:ring-foreground/25"
-              style={{ paddingInline: PAD_X, gap: GAP }}
-            >
-              <span ref={text} className="truncate whitespace-nowrap">
-                {bot.name}
-              </span>
-              <ChevronRightIcon className="shrink-0" style={{ width: CHEVRON, height: CHEVRON }} />
-            </button>
-          }
-        />
+        {/* Klick klappt das rechte Panel (ChatSidePanel) auf und zu. */}
+        <button
+          type="button"
+          aria-label={`Kontakt ${bot.name}`}
+          onClick={() => window.dispatchEvent(new Event(PANEL_TOGGLE_EVENT))}
+          // Glas wie orbitGlass(22, interactive): Blur, heller Schleier, feiner Rand; bei mehr Kontrast deckend.
+          className="flex h-full max-w-full items-center rounded-[22px] bg-foreground/[0.06] font-semibold shadow-sm ring-1 ring-foreground/10 backdrop-blur-xl transition-colors hover:bg-foreground/10 contrast-more:bg-background contrast-more:ring-foreground/25"
+          style={{ paddingInline: PAD_X, gap: GAP }}
+        >
+          <span ref={text} className="truncate whitespace-nowrap">
+            {bot.name}
+          </span>
+          <ChevronRightIcon className="shrink-0" style={{ width: CHEVRON, height: CHEVRON }} />
+        </button>
       </div>
     </div>
   );

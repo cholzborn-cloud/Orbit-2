@@ -7,7 +7,7 @@ import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/lib/db";
-import { createSandbox, deleteSandbox } from "@/lib/daytona";
+import { createSandbox, deleteSandbox, getDesktopUrl } from "@/lib/daytona";
 import { insertBotSchema, botFormSchema } from "@/lib/db/bot-schema";
 import { bots, chatMembers, chats } from "@/lib/db/schema";
 
@@ -108,4 +108,22 @@ export async function deleteBot(id: string): Promise<CreateBotResult> {
   }
   revalidatePath("/");
   return { ok: true, id };
+}
+
+export async function getBotDesktopUrl(id: string): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  const { userId } = await auth();
+  if (!userId) return { ok: false, error: "Bitte melde dich an." };
+
+  const [bot] = await db
+    .select({ sandboxId: bots.sandboxId })
+    .from(bots)
+    .where(and(eq(bots.id, id), eq(bots.userId, userId)));
+  if (!bot?.sandboxId) return { ok: false, error: "Dieser Orbi hat keinen Computer." };
+
+  try {
+    return { ok: true, url: await getDesktopUrl(bot.sandboxId) };
+  } catch (e) {
+    console.error("Desktop konnte nicht gestartet werden", bot.sandboxId, e);
+    return { ok: false, error: "Computer konnte nicht gestartet werden." };
+  }
 }
