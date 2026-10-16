@@ -430,7 +430,7 @@ function ChatBody({
                     )}
                     {message.parts.map((part, i) => {
                       const key = `${message.id}-${i}`;
-                      if (isToolUIPart(part)) return <ToolCall key={key} part={part} />;
+                      if (isToolUIPart(part)) return <ToolCall key={key} part={part} live={status === "streaming" && message.id === messages.at(-1)?.id} />;
                       if (part.type === "file") return <FileCard key={key} file={part} />;
                       if (part.type !== "text" || !part.text) return null;
                       return (

@@ -37,7 +37,7 @@ type ChatBot = {
   direct_chat_id: string | null; // eigener 1:1-Chat, dort landen Übergaben
 };
 
-type ClientData = { model: string; effort?: string; botId?: string; handoffDepth?: number; handoffFrom?: string; handoffGroup?: string };
+type ClientData = { model: string; effort?: string; botId?: string; handoffDepth?: number; handoffFrom?: string; handoffGroup?: string; handoffId?: string };
 
 // Alles, was ein Orbi in diesem Chat braucht.
 type ChatContext = {
@@ -63,6 +63,7 @@ export type HandoffOutput = {
   task: string;
   reason: string;
   waiting?: boolean; // Ziel arbeitet noch an einer anderen Aufgabe
+  error?: string; // Übergabe gescheitert, kurzer deutscher Grund
   message?: UIMessage<ChatMetadata>; // bisherige Antwort von B mit Schritten
 };
 
@@ -127,11 +128,29 @@ function handoffTool(ctx: ChatContext) {
     execute: async function* ({ target_orbi, reason, task, context }, { abortSignal }) {
       const key = target_orbi.trim().toLowerCase();
       const target = ctx.team.find((b) => b.id === target_orbi.trim() || b.name.toLowerCase() === key);
-      if (!target)
-        throw new Error(`Unknown Orbi "${target_orbi}". Available: ${ctx.team.filter((b) => b.id !== bot.id).map((b) => b.name).join(", ")}.`);
-      if (target.id === bot.id) throw new Error("You cannot hand off to yourself. Answer yourself.");
-      if (target.id === ctx.from?.id) throw new Error(`${target.name} just handed this to you. Do not hand it back; answer yourself.`);
+      // Fehler als Ergebnis statt als Wurf: so bleiben Name und Avatar der Karte erhalten (ein Wurf verliert die Ausgabe).
+      const fail = (error: string, b = target): HandoffOutput => ({
+        to: b?.name ?? "unbekannter Orbi",
+        avatar: b?.avatar ?? "",
+        color: b?.color ?? null,
+        task,
+        reason,
+        error,
+      });
+      if (!target) {
+        yield fail(`Orbi „${target_orbi}“ gibt es nicht. Verfügbar: ${ctx.team.filter((b) => b.id !== bot.id).map((b) => b.name).join(", ")}.`);
+        return;
+      }
+      if (target.id === bot.id) {
+        yield fail("Übergabe an sich selbst nicht möglich.");
+        return;
+      }
+      if (target.id === ctx.from?.id) {
+        yield fail(`${target.name} hat das gerade übergeben, nicht zurückgeben.`);
+        return;
+      }
 
+      const handoffId = crypto.randomUUID();
       const base: HandoffOutput = { to: target.name, avatar: target.avatar, color: target.color, task, reason };
       yield base;
       // Aus Gruppen: ebenfalls der 1:1-Chat des Ziels (Label nennt die Gruppe); Weitergaben aus so einer Übergabe bleiben unsichtbar.
@@ -148,10 +167,18 @@ function handoffTool(ctx: ChatContext) {
         const agent = new AgentChat({
           agent: "orbit-chat",
           id,
-          clientData: { ...ctx.clientData, context: true, botId: target.id, handoffDepth: ctx.depth + 1, handoffFrom: bot.id, handoffGroup: group },
+          // context: false = Modell sieht nur die Aufgabe; die Nachrichten landen trotzdem im Chat des Ziels.
+          clientData: { ...ctx.clientData, context: false, handoffId, botId: target.id, handoffDepth: ctx.depth + 1, handoffFrom: bot.id, handoffGroup: group },
           streamTimeoutSeconds: 240,
         });
-        const stream = await agent.sendRaw(
+        // Ein neuer AgentChat liest die Session ab Anfang und träfe zuerst alte Turns. Erst bis zum aktuellen Ende lesen,
+        // dann senden. Reicht das nicht, trägt jeder Turn die handoffId, fremde Turns werden übersprungen.
+        if (!hidden) {
+          await agent.preload();
+          const settled = await agent.reconnect(abortSignal);
+          await settled?.pipeTo(new WritableStream());
+        }
+        let stream = await agent.sendRaw(
           [
             {
               id: crypto.randomUUID(),
@@ -165,21 +192,40 @@ function handoffTool(ctx: ChatContext) {
         // Höchstens alle 400 ms ein Zwischenstand; jeder ist die ganze bisherige Nachricht.
         let last: UIMessage<ChatMetadata> | undefined;
         let sentAt = 0;
-        for await (const message of readUIMessageStream<UIMessage<ChatMetadata>>({ stream })) {
-          last = message;
-          if (Date.now() - sentAt < 400) continue;
-          sentAt = Date.now();
-          yield { ...base, message };
+        const deadline = Date.now() + 240_000;
+        while (!abortSignal?.aborted && Date.now() < deadline) {
+          for await (const message of readUIMessageStream<UIMessage<ChatMetadata>>({ stream })) {
+            if (message.metadata?.handoffId !== handoffId) continue;
+            last = message;
+            if (Date.now() - sentAt < 400) continue;
+            sentAt = Date.now();
+            yield { ...base, message };
+          }
+          if (last) break;
+          // shortcut: privater SDK-Aufruf, nächster Turn derselben Session; bei SDK-Update prüfen.
+          stream = await (agent as unknown as { subscribeToSessionStream(s?: AbortSignal, o?: object): Promise<typeof stream> }).subscribeToSessionStream(abortSignal, { resumeAfterEof: true });
         }
-        if (!answerText(last)) throw new Error(`${target.name} returned no answer.`);
-        yield { ...base, message: last };
+        yield answerText(last) ? { ...base, message: last } : { ...base, message: last, error: `${target.name} hat keine Antwort geliefert.` };
+      } catch (e) {
+        if (abortSignal?.aborted) throw e;
+        console.error(`handoff to ${target.name} failed`, e);
+        const msg = e instanceof Error ? e.message : String(e);
+        yield {
+          ...base,
+          error: /timeout|timed out/i.test(msg)
+            ? `${target.name} hat nicht rechtzeitig geantwortet (Zeitüberschreitung).`
+            : `${target.name} nicht erreichbar: ${msg.slice(0, 120)}`,
+        };
       } finally {
         release();
         if (ctx.queue.get(id) === mine) ctx.queue.delete(id);
       }
     },
     // A braucht nur B's Antworttext, nicht alle Schritte.
-    toModelOutput: ({ output }) => ({ type: "text", value: `Result from ${output.to}:\n${answerText(output.message) || "(no answer)"}` }),
+    toModelOutput: ({ output }) => ({
+      type: "text",
+      value: output.error ? `Handoff failed: ${output.error}` : `Result from ${output.to}:\n${answerText(output.message)}`,
+    }),
   });
 }
 
@@ -253,6 +299,7 @@ export const orbitChat = chat
       handoffDepth: z.number().int().optional(),
       handoffFrom: z.string().optional(),
       handoffGroup: z.string().optional(),
+      handoffId: z.string().optional(), // kennzeichnet den Turn einer Übergabe im Stream
     }),
   })
   .agent({
@@ -284,9 +331,11 @@ export const orbitChat = chat
 
       // Für den Info-Knopf an der Antwort: Modell, Stufe, Dauer und Tokenverbrauch.
       chat.setUIMessageStreamOptions({
+        // Standard maskiert Fehler als "An error occurred."
+        onError: (error) => (error instanceof Error ? error.message : String(error)),
         messageMetadata: ({ part }): ChatMetadata | undefined => {
           if (part.type === "start")
-            return { botId: clientData?.botId, model: model.label, effort: wantsEffort ? effort : undefined, startedAt: Date.now() };
+            return { botId: clientData?.botId, handoffId: clientData?.handoffId, model: model.label, effort: wantsEffort ? effort : undefined, startedAt: Date.now() };
           if (part.type === "finish")
             return {
               inputTokens: part.totalUsage.inputTokens,

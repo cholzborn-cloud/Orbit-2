@@ -33,6 +33,7 @@ export type ChatMetadata = {
   botId?: string; // antwortender Orbi (Gruppenchat)
   handoffFrom?: string; // Nutzernachricht kam per Übergabe von diesem Orbi
   handoffGroup?: string; // Übergabe stammt aus dieser Gruppe
+  handoffId?: string; // Turn gehört zu dieser Übergabe (Zuordnung im Session-Stream)
   model?: string;
   effort?: string;
   startedAt?: number;

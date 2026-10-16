@@ -37,8 +37,7 @@ const TITLES: Record<string, (i: Input) => string> = {
   keyboard_hotkey: (i) => `Tasten: ${i?.keys}`,
   wait: (i) => `Warten: ${i?.seconds} s`,
   share_file: (i) => `Datei senden: ${cut(i?.path)}`,
-  handoff: (i) => `Übergabe an ${cut(i?.target_orbi)}`,
-};
+  };
 
 // Kurzer Satz zum aktuellen Schritt des Ziel-Orbis.
 const STEPS: Record<string, string> = {
@@ -53,25 +52,34 @@ const stepText = (p: UIMessage["parts"][number] | undefined) =>
 
 // Übergabe: eine kompakte Zeile, in allen Chats gleich. Zugeklappt: Avatar, Name und ein Satz zum Stand
 // (wartet, läuft mit Schimmer, fertig mit Vorschau, fehlgeschlagen mit Grund). Aufgeklappt: Aufgabe, Schritte, Antwort.
-function Handoff({ part }: { part: Part }) {
+function Handoff({ part, live }: { part: Part; live: boolean }) {
   const h = part.output as HandoffOutput | undefined;
   const input = part.input as Input;
-  const to = h?.to ?? String(input?.target_orbi ?? "Orbi");
   const task = String(h?.task ?? input?.task ?? "");
-  const failed = part.state === "output-error";
-  const running = !failed && (part.state !== "output-available" || part.preliminary === true);
   const parts = h?.message?.parts ?? [];
   const last = parts.findLast((p) => isToolUIPart(p) || (p.type === "text" && p.text));
-  const answer = cut(parts.flatMap((p) => (p.type === "text" ? [p.text] : [])).join(" "), 80);
+  // Vorschau = letzter Text (die Antwort), nicht die Zwischenkommentare.
+  const finalText = parts.findLast((p) => p.type === "text" && p.text.trim());
+  const answer = cut(finalText?.type === "text" ? finalText.text : "", 80);
+  const finished = part.state === "output-available" && part.preliminary !== true;
+  // Läuft nur, solange der Turn streamt; sonst fertig oder fehlgeschlagen.
+  const running = !finished && part.state !== "output-error" && live;
+  const to = h?.to ?? (running ? "Orbi" : "unbekannter Orbi");
+  const error =
+    h?.error ??
+    (part.state === "output-error" ? part.errorText : undefined) ??
+    (finished && !answer ? "Keine Antwort erhalten." : undefined) ??
+    (!finished && !live ? "Unterbrochen." : undefined);
+  const failed = !!error && !running;
   return (
     <Collapsible className="w-full max-w-md rounded-lg border text-left text-sm">
       <CollapsibleTrigger className="group/handoff flex w-full items-center gap-2 px-3 py-2 text-left">
-        {h ? <ChatAvatar seed={h.avatar} color={h.color} className="size-5 shrink-0" /> : <span className="size-5 shrink-0 rounded-full bg-muted" />}
+        {h?.avatar ? <ChatAvatar seed={h.avatar} color={h.color} className="size-5 shrink-0" /> : <span className="size-5 shrink-0 rounded-full bg-muted" />}
         <span className="min-w-0 flex-1">
           {failed ? (
             <>
               <span className="block truncate">Übergabe an {to} fehlgeschlagen</span>
-              <span className="block truncate text-xs text-destructive">{part.errorText}</span>
+              <span className="block truncate text-xs text-destructive">{error}</span>
             </>
           ) : running ? (
             <>
@@ -107,7 +115,8 @@ function Handoff({ part }: { part: Part }) {
 const BINARY_TOOLS = new Set(["view_screen", "show_screen", "share_file"]);
 const TOOL_CLASS = "mb-0 w-full max-w-md text-left";
 
-export function ToolCall({ part }: { part: Part }) {
+// `live`: der Turn dieser Nachricht streamt gerade.
+export function ToolCall({ part, live = false }: { part: Part; live?: boolean }) {
   const name = getToolName(part);
   const title = TITLES[name]?.(part.input as Input) ?? name;
   const header = (
@@ -135,7 +144,7 @@ export function ToolCall({ part }: { part: Part }) {
     );
   }
 
-  if (name === "handoff") return <Handoff part={part} />;
+  if (name === "handoff") return <Handoff part={part} live={live} />;
 
   // Vom Orbi gesendete Datei: Vorschau bzw. Karte mit Öffnen und Herunterladen.
   if (name === "share_file" && part.state === "output-available") {
