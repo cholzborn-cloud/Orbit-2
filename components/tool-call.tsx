@@ -1,10 +1,16 @@
 "use client";
 
-import { getToolName, type DynamicToolUIPart, type ToolUIPart } from "ai";
+import { getToolName, isToolUIPart, type DynamicToolUIPart, type ToolUIPart } from "ai";
+import { ArrowRightLeftIcon, ChevronDownIcon, XCircleIcon } from "lucide-react";
 
 import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from "@/components/ai-elements/tool";
+import { MessageResponse } from "@/components/ai-elements/message";
+import { Shimmer } from "@/components/ai-elements/shimmer";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { FileCard, ImagePreview } from "@/components/media";
+import type { HandoffOutput } from "@/trigger/chat";
 import type { Screenshot, SharedFileOutput } from "@/trigger/sandbox-tools";
+import { cn } from "@/lib/utils";
 
 type Part = ToolUIPart | DynamicToolUIPart;
 type Input = Record<string, unknown> | undefined;
@@ -31,7 +37,57 @@ const TITLES: Record<string, (i: Input) => string> = {
   keyboard_hotkey: (i) => `Tasten: ${i?.keys}`,
   wait: (i) => `Warten: ${i?.seconds} s`,
   share_file: (i) => `Datei senden: ${cut(i?.path)}`,
+  handoff: (i) => `Übergabe an ${cut(i?.target_orbi)}`,
 };
+
+// Übergabe: eine kompakte Zeile; läuft (Schimmer + aktueller Schritt), fertig (zugeklappt) oder fehlgeschlagen.
+// Aufgeklappt zeigt sie, was der Ziel-Orbi getan hat; dessen Antwort fasst der übergebende Orbi darunter selbst zusammen.
+function Handoff({ part }: { part: Part }) {
+  const h = part.output as HandoffOutput | undefined;
+  const input = part.input as Input;
+  const to = h?.to ?? String(input?.target_orbi ?? "Orbi");
+  const task = String(h?.task ?? input?.task ?? "");
+  const failed = part.state === "output-error";
+  const running = !failed && (part.state !== "output-available" || part.preliminary === true);
+  const parts = h?.message?.parts ?? [];
+  const last = parts.findLast((p) => isToolUIPart(p) || (p.type === "text" && p.text));
+  const step = !last ? "startet …" : isToolUIPart(last) ? (TITLES[getToolName(last)]?.(last.input as Input) ?? getToolName(last)) : "schreibt die Antwort …";
+  return (
+    <Collapsible className="w-full max-w-md rounded-lg border text-left text-sm">
+      <CollapsibleTrigger className="group/handoff flex w-full items-center gap-2 px-3 py-2 text-left">
+        {failed ? (
+          <XCircleIcon className="size-4 shrink-0 text-destructive" />
+        ) : (
+          <ArrowRightLeftIcon className={cn("size-4 shrink-0 text-muted-foreground", running && "animate-pulse")} />
+        )}
+        <span className="min-w-0 flex-1">
+          {running ? (
+            <>
+              <Shimmer as="span" className="block truncate">{`${to} übernimmt: ${cut(task, 60)}`}</Shimmer>
+              <span className="block truncate text-xs text-muted-foreground">{step}</span>
+            </>
+          ) : failed ? (
+            <>
+              <span className="block truncate">Übergabe an {to} fehlgeschlagen</span>
+              <span className="block text-xs text-destructive">{part.errorText}</span>
+            </>
+          ) : (
+            <span className="block truncate">{to} hat das übernommen</span>
+          )}
+        </span>
+        <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[panel-open]/handoff:rotate-180" />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="space-y-2 border-t px-3 py-2">
+        <p className="text-xs text-muted-foreground">Aufgabe: {task}</p>
+        {parts.map((p, i) => {
+          if (isToolUIPart(p)) return <ToolCall key={i} part={p} />;
+          if (p.type === "text" && p.text) return <MessageResponse key={i}>{p.text}</MessageResponse>;
+          return null;
+        })}
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
 
 // Ausgaben mit base64: nie als JSON anzeigen.
 const BINARY_TOOLS = new Set(["view_screen", "show_screen", "share_file"]);
@@ -64,6 +120,8 @@ export function ToolCall({ part }: { part: Part }) {
       />
     );
   }
+
+  if (name === "handoff") return <Handoff part={part} />;
 
   // Vom Orbi gesendete Datei: Vorschau bzw. Karte mit Öffnen und Herunterladen.
   if (name === "share_file" && part.state === "output-available") {

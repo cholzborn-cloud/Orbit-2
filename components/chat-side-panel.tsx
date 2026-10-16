@@ -17,6 +17,50 @@ import { Tabs as TabsPrimitive } from "@base-ui/react/tabs";
 
 export const PANEL_TOGGLE_EVENT = "orbit-panel-toggle";
 
+// Panel gleitet von rechts ein und aus: Übergang nur für diese Umschaltung, Ziehen bleibt direkt.
+export function slidePanels() {
+  const group = document.querySelector<HTMLElement>("[data-slot=resizable-panel-group]");
+  if (!group || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  group.dataset.sliding = "";
+  setTimeout(() => delete group.dataset.sliding, 450);
+}
+
+// Breite des Seitenpanels, für alle Chats und Gruppen gleich; wird beim Schließen gemerkt.
+const WIDTH_KEY = "orbit-side-panel-width";
+const DEFAULT_WIDTH = 380;
+// Obergrenze für Chat und Gruppe gleich.
+export const PANEL_MAX_WIDTH = 520;
+
+const storedWidth = () => {
+  try {
+    const w = Number(localStorage.getItem(WIDTH_KEY));
+    return w > 0 ? Math.min(w, PANEL_MAX_WIDTH) : DEFAULT_WIDTH;
+  } catch {
+    return DEFAULT_WIDTH;
+  }
+};
+
+// Header-Pille klappt das Panel auf und zu; gemerkte Breite beim Öffnen, aktuelle beim Schließen sichern.
+export function useSidePanelToggle(panel: ReturnType<typeof usePanelRef>) {
+  useEffect(() => {
+    const toggle = () => {
+      const p = panel.current;
+      if (!p) return;
+      slidePanels();
+      if (p.isCollapsed()) {
+        p.resize(storedWidth());
+      } else {
+        try {
+          localStorage.setItem(WIDTH_KEY, String(Math.round(p.getSize().inPixels)));
+        } catch {}
+        p.collapse();
+      }
+    };
+    window.addEventListener(PANEL_TOGGLE_EVENT, toggle);
+    return () => window.removeEventListener(PANEL_TOGGLE_EVENT, toggle);
+  }, [panel]);
+}
+
 // Zwei Spalten: bei schmalem Panel bricht keine Schaltfläche einzeln in eine neue Zeile.
 const PanelFooter = ({ children }: { children: React.ReactNode }) => (
   <div className="grid grid-cols-2 gap-2">{children}</div>
@@ -33,11 +77,7 @@ export function ChatSidePanel({ bot, chatId }: { bot: EditableBot; chatId: strin
   const [previewSlot, setPreviewSlot] = useState<HTMLElement | null>(null);
   const [dialogSlot, setDialogSlot] = useState<HTMLElement | null>(null);
 
-  useEffect(() => {
-    const toggle = () => (panel.current?.isCollapsed() ? panel.current.expand() : panel.current?.collapse());
-    window.addEventListener(PANEL_TOGGLE_EVENT, toggle);
-    return () => window.removeEventListener(PANEL_TOGGLE_EVENT, toggle);
-  }, [panel]);
+  useSidePanelToggle(panel);
 
   // Desktop nur einmal laden, beim ersten Öffnen des Tabs.
   const showDesktop = expanded && tab === "desktop";
@@ -53,16 +93,21 @@ export function ChatSidePanel({ bot, chatId }: { bot: EditableBot; chatId: strin
       id="side"
       panelRef={panel}
       collapsible
+      // Ziehen klappt nie ganz zu: nur der Knopf im Header schließt das Panel.
+      collapsedThreshold="100%"
       collapsedSize={0}
       defaultSize={0}
       minSize="25"
+      maxSize={PANEL_MAX_WIDTH}
       onResize={(size) => setExpanded(size.inPixels > 0)}
-      className="flex flex-col"
+      className="flex flex-col items-end overflow-hidden"
     >
+      {/* Feste Mindestbreite, rechts verankert: beim Gleiten bricht der Inhalt nicht um, er schiebt sich nur ein. */}
+      <div className="flex min-h-0 w-full min-w-60 flex-1 flex-col">
       <Tabs value={tab} onValueChange={setTab} className="min-h-0 flex-1 p-3">
         {/* Segment-Schalter im Glas-Stil der Header-Pille; die Markierung gleitet zum aktiven Tab. */}
         <TabsList className="relative h-9 w-full shrink-0 rounded-full bg-foreground/[0.06] p-1 ring-1 ring-foreground/10 backdrop-blur-xl contrast-more:bg-background contrast-more:ring-foreground/25">
-          <TabsPrimitive.Indicator className="absolute top-1 bottom-1 left-0 w-(--active-tab-width) translate-x-(--active-tab-left) rounded-full bg-foreground/15 shadow-sm ring-1 ring-foreground/15 transition-[translate,width] duration-200 ease-out motion-reduce:transition-none" />
+          <TabsPrimitive.Indicator className="absolute top-1 bottom-1 left-0 w-(--active-tab-width) translate-x-(--active-tab-left) rounded-full bg-foreground/15 shadow-sm ring-1 ring-foreground/15 transition-[translate,width] duration-200 ease-out motion-reduce:transition-none [[data-sliding]_&]:transition-none" />
           {["edit", "desktop"].map((v) => (
             <TabsTrigger
               key={v}
@@ -128,13 +173,14 @@ export function ChatSidePanel({ bot, chatId }: { bot: EditableBot; chatId: strin
           interactive={fullscreen}
         />
       )}
+    </div>
     </ResizablePanel>
   );
 }
 
 // Ein einziges iframe für Vorschau und Vollbild: Umhängen im DOM würde VNC neu laden,
 // darum liegt es fest im body und wird nur über die jeweilige Zielfläche gelegt.
-function DesktopFrame({ url, target, interactive }: { url: string; target: HTMLElement | null; interactive: boolean }) {
+export function DesktopFrame({ url, target, interactive }: { url: string; target: HTMLElement | null; interactive: boolean }) {
   const frame = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {

@@ -11,6 +11,20 @@ const JOB_DESCRIPTIONS: Record<string, string> = {
   Planen: "Du hilfst, Projekte, Tage und Ziele zu planen, indem du sie in kleine Schritte mit klaren Prioritäten und realistischer Zeit aufteilst.",
 };
 
+// Typische Aufgabe je Vorlage, für Übergabe-Beispiele im System-Prompt.
+const JOB_EXAMPLES: Record<string, string> = {
+  Begleiter: "Lass uns kurz über meinen Tag plaudern",
+  Recherche: "Vergleich mir die drei besten E-Bikes unter 2000 € mit Quellen",
+  Programmieren: "Schreib mir eine Python-Funktion, die Primzahlen prüft",
+  "Code-Review": "Schau dir diesen Code auf Fehler und Sicherheitslücken an",
+  Texte: "Formulier mir eine höfliche E-Mail an meinen Vermieter",
+  Lernen: "Erklär mir die Photosynthese Schritt für Schritt",
+  Übersetzen: "Übersetz diesen Absatz ins Englische",
+  Ideen: "Gib mir Ideen für einen Geburtstag",
+  Planen: "Plan mir die Lernwoche vor der Prüfung",
+};
+export const jobExample = (job: string) => JOB_EXAMPLES[job.trim()] ?? `eine Aufgabe zum Thema „${job}“`;
+
 const MAIN_DESCRIPTION =
   "Du bist der Haupt-Orbi des Nutzers. Deine Hauptaufgabe ist es, die anderen Orbis zu koordinieren: verstehen, was der Nutzer braucht, entscheiden, welcher Orbi am besten passt, und den Überblick behalten. Nur kleine, schnelle Dinge erledigst du selbst; größere oder spezielle Aufgaben gehören zum passenden Orbi.";
 

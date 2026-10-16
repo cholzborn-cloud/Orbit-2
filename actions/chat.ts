@@ -36,6 +36,48 @@ export async function createGroup(
   return { ok: true, id };
 }
 
+export async function updateGroup(
+  chatId: string,
+  input: unknown,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { userId } = await auth();
+  if (!userId) return { ok: false, error: "Bitte melde dich an." };
+  const form = groupFormSchema.safeParse(input);
+  if (!form.success) return { ok: false, error: form.error.issues[0].message };
+
+  const [group] = await db
+    .select({ id: chats.id })
+    .from(chats)
+    .where(and(eq(chats.id, chatId), eq(chats.userId, userId), eq(chats.kind, "group")));
+  if (!group) return { ok: false, error: "Gruppe nicht gefunden." };
+  const own = await db
+    .select({ id: bots.id })
+    .from(bots)
+    .where(and(eq(bots.userId, userId), inArray(bots.id, form.data.botIds)));
+  if (own.length !== form.data.botIds.length) return { ok: false, error: "Unbekannter Orbi." };
+
+  await db.batch([
+    db.update(chats).set({ name: form.data.name }).where(eq(chats.id, chatId)),
+    db.delete(chatMembers).where(eq(chatMembers.chatId, chatId)),
+    db.insert(chatMembers).values(own.map((b) => ({ chatId, botId: b.id }))),
+  ]);
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+export async function deleteGroup(chatId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { userId } = await auth();
+  if (!userId) return { ok: false, error: "Bitte melde dich an." };
+  // Mitglieder gehen per Cascade mit; die Orbis bleiben.
+  const deleted = await db
+    .delete(chats)
+    .where(and(eq(chats.id, chatId), eq(chats.userId, userId), eq(chats.kind, "group")))
+    .returning({ id: chats.id });
+  if (!deleted.length) return { ok: false, error: "Gruppe nicht gefunden." };
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
 // Nur die Zeit der letzten Nachricht für die Seitenleiste.
 export async function touchChat(chatId: string) {
   const { userId } = await auth();

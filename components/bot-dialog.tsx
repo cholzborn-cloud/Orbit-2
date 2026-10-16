@@ -46,7 +46,9 @@ const PRESETS = ["Begleiter", "Recherche", "Programmieren", "Code-Review", "Text
 );
 const CUSTOM = { job: "", label: "Eigener", instructions: "" };
 
-const MAIN_JOB = "Koordinator";
+const MAIN_JOB = "Hauptorbi";
+// Ältere Hauptorbis tragen noch die frühere Aufgabe.
+const isMainJob = (job: string) => job === MAIN_JOB || job === "Koordinator";
 
 const COLORS = ["#ef4444", "#f97316", "#facc15", "#84cc16", "#22c55e", "#14b8a6", "#3b82f6", "#8b5cf6", "#ec4899", "#94a3b8"];
 const DOT_SELECTED = "ring-2 ring-white ring-offset-2 ring-offset-popover";
@@ -174,7 +176,7 @@ export function BotForm({
                           field.value === orbi && "bg-primary/20 ring-2 ring-primary",
                         )}
                       >
-                        <ChatAvatar seed={orbi} color={field.value === orbi ? color : null} className="size-9" />
+                        <ChatAvatar seed={orbi} color={field.value === orbi ? color : null} className="aspect-square w-[68%]" />
                       </button>
                     ))}
                   </div>
@@ -245,7 +247,7 @@ export function BotForm({
                       if (checked) {
                         form.setValue("job", MAIN_JOB, { shouldValidate: true });
                         form.setValue("instructions", describeJob(MAIN_JOB, true));
-                      } else if (form.getValues("job") === MAIN_JOB) {
+                      } else if (isMainJob(form.getValues("job"))) {
                         form.setValue("job", PRESETS[0].job);
                         form.setValue("instructions", PRESETS[0].instructions);
                       }

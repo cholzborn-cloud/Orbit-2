@@ -29,6 +29,31 @@ export function useHeaderScroll(
     let timer: ReturnType<typeof setTimeout> | undefined;
     let prev = el.scrollTop;
     let deltas: { t: number; d: number }[] = [];
+    // Panel auf-/zuklappen ändert die Breite, der Text bricht um und der Scroll springt: nicht einrasten.
+    let frozenUntil = 0;
+    const onPanelToggle = () => {
+      frozenUntil = performance.now() + 600;
+      lastInput = -Infinity;
+      deltas = [];
+      cancelAnimationFrame(anim);
+      anim = 0;
+    };
+
+    // Ziehen am Panel-Griff: Umbruch und Scroll-Feder verschieben scrollTop, der Header darf dem nicht hinterherlaufen.
+    let lastW = el.clientWidth;
+    let unfreeze: ReturnType<typeof setTimeout> | undefined;
+    const ro = new ResizeObserver(() => {
+      if (el.clientWidth === lastW) return;
+      lastW = el.clientWidth;
+      frozenUntil = performance.now() + 250;
+      lastInput = -Infinity;
+      deltas = [];
+      cancelAnimationFrame(anim);
+      anim = 0;
+      clearTimeout(unfreeze);
+      unfreeze = setTimeout(() => header.current?.setProgress(reduced.matches ? 1 : headerProgress(el.scrollTop)), 260);
+    });
+    ro.observe(el);
 
     // Reduce Motion: Header fix kompakt.
     const update = () => header.current?.setProgress(reduced.matches ? 1 : headerProgress(el.scrollTop));
@@ -39,7 +64,7 @@ export function useHeaderScroll(
     };
     const settle = () => {
       const now = performance.now();
-      if (reduced.matches || anim || now - lastInput > USER_WINDOW_MS) return;
+      if (reduced.matches || anim || now < frozenUntil || now - lastInput > USER_WINDOW_MS) return;
       lastInput = -Infinity;
       const sum = deltas.filter((x) => now - x.t < DIR_WINDOW_MS).reduce((s, x) => s + x.d, 0);
       const dir = Math.abs(sum) >= DIR_MIN_PX ? Math.sign(sum) : 0;
@@ -59,7 +84,7 @@ export function useHeaderScroll(
       deltas = deltas.filter((x) => now - x.t < DIR_WINDOW_MS);
       deltas.push({ t: now, d: el.scrollTop - prev });
       prev = el.scrollTop;
-      update();
+      if (now >= frozenUntil) update();
       if (!hasScrollEnd) {
         clearTimeout(timer);
         timer = setTimeout(settle, 120);
@@ -71,14 +96,18 @@ export function useHeaderScroll(
     el.addEventListener("scroll", onScroll, { passive: true });
     if (hasScrollEnd) el.addEventListener("scrollend", settle);
     reduced.addEventListener("change", update);
+    window.addEventListener(PANEL_TOGGLE_EVENT, onPanelToggle);
     update();
     return () => {
       inputs.forEach((e) => el.removeEventListener(e, onInput));
       el.removeEventListener("scroll", onScroll);
       el.removeEventListener("scrollend", settle);
       reduced.removeEventListener("change", update);
+      window.removeEventListener(PANEL_TOGGLE_EVENT, onPanelToggle);
       cancelAnimationFrame(anim);
       clearTimeout(timer);
+      clearTimeout(unfreeze);
+      ro.disconnect();
     };
   }, [conv, header, ready]);
 }
@@ -113,34 +142,27 @@ export function ChatHeader({
   ref: Ref<ChatHeaderHandle>;
   bot: EditableBot;
   dots: Dot[];
-  title?: string; // Gruppenname; dann ohne Panel-Knopf
+  title?: string; // Gruppenname
 }) {
   const root = useRef<HTMLDivElement>(null);
   const band = useRef<HTMLDivElement>(null);
   const avatars = useRef<HTMLDivElement>(null);
   const pill = useRef<HTMLDivElement>(null);
-  const text = useRef<HTMLSpanElement>(null);
-  const state = useRef({ p: 0, width: 400, text24: 0 });
+  const state = useRef({ p: 0 });
 
   // Schreibt nur Styles, kein React-Render: läuft bei jedem Scroll-Ereignis.
+  // Breiten-abhängiges (Mitte, Kürzen, Avatar neben der Pille) löst CSS selbst, damit das Ziehen des Panels ohne Verzögerung folgt.
   const render = () => {
-    const { p, width, text24 } = state.current;
+    const { p } = state.current;
     // Orbi genau so hoch wie die Namens-Pille.
     const size = AV_BIG - p * (AV_BIG - AV_SMALL);
     const nameH = 44 - p * 8;
     const fs = 24 - p * 8;
-    const avatarW = size;
-    const maxName = Math.max(80, width - avatarW - 48);
-    // Textbreite einmal bei 24 px gemessen, skaliert linear mit der Schrift.
-    const nameW = Math.min(maxName, text24 * (fs / 24) + PAD_X * 2 + (title ? 0 : GAP + CHEVRON));
 
     const tx = smooth(clamp01(p * 2));
     const ty = smooth(clamp01((p - 0.5) * 2));
-    const mid = width / 2;
     // Klein: [Avatar][ROW_GAP][Name] mittig, beide vertikal zentriert. Groß: Avatar über Name mit STACK_GAP.
-    const ax = mid - ((nameW + ROW_GAP) * tx) / 2;
     const ay = 75 - 31 * ty;
-    const nx = mid + ((avatarW + ROW_GAP) * tx) / 2;
     const nyBig = 75 + AV_BIG / 2 + STACK_GAP + 22;
     const ny = nyBig - (nyBig - 44) * ty;
 
@@ -148,16 +170,20 @@ export function ChatHeader({
     root.current!.style.height = `${h}px`;
     band.current!.style.height = `${h - 24}px`;
 
-    const a = avatars.current!.style;
-    a.setProperty("--s", `${size}px`);
-    a.width = `${avatarW}px`;
-    a.transform = `translate(${ax - avatarW / 2}px, ${ay - size / 2}px)`;
-
+    // Pille: Mitte des Headers, bei klein um die halbe Avatar-Breite nach rechts.
     const n = pill.current!.style;
     n.height = `${nameH}px`;
     n.fontSize = `${fs}px`;
-    n.maxWidth = `${maxName}px`;
-    n.transform = `translate(${nx - nameW / 2}px, ${ny - nameH / 2}px)`;
+    n.maxWidth = `max(80px, calc(100% - ${size + 48}px))`;
+    n.left = `calc(50% + ${((size + ROW_GAP) * tx) / 2}px)`;
+    n.transform = `translate(-50%, ${ny - nameH / 2}px)`;
+
+    // Avatar hängt an der Pille: groß mittig darüber, klein links daneben (Prozent = Pillenbreite).
+    const a = avatars.current!.style;
+    a.setProperty("--s", `${size}px`);
+    a.width = `${size}px`;
+    a.left = `calc(${(1 - tx) * 50}% - ${tx * (ROW_GAP + size / 2)}px)`;
+    a.top = `${ay - size / 2 - (ny - nameH / 2)}px`;
   };
 
   useImperativeHandle(ref, () => ({
@@ -168,48 +194,40 @@ export function ChatHeader({
   }));
 
   useLayoutEffect(() => {
-    const measure = () => {
-      state.current.width = root.current!.offsetWidth;
-      // Ungekürzte Breite bei 24 px (scrollWidth ignoriert das Abschneiden).
-      state.current.text24 = (text.current!.scrollWidth * 24) / parseFloat(getComputedStyle(text.current!).fontSize);
-      render();
-    };
-    const resize = new ResizeObserver(measure);
-    resize.observe(root.current!);
-    measure();
-    return () => resize.disconnect();
+    render();
+    root.current!.style.visibility = "visible";
   });
 
   return (
-    <div ref={root} className="pointer-events-none absolute inset-x-0 top-0 z-10" style={{ height: 183 }}>
+    <div ref={root} className="pointer-events-none absolute inset-x-0 top-0 z-10" style={{ height: 183, visibility: "hidden" }}>
       {/* Hintergrundleiste: voller Hintergrundton, darunter 48 px Verlauf zu transparent. Keine harte Kante. */}
       <div aria-hidden className="absolute inset-x-0 top-0">
         <div ref={band} className="bg-background" style={{ height: 159 }} />
         <div className="h-12 bg-linear-to-b from-background to-transparent" />
       </div>
+      <div ref={pill} className="absolute top-0 w-max" style={{ height: 44, fontSize: 24 }}>
       <div
         ref={avatars}
-        className="absolute top-0 left-0 flex"
+        className="pointer-events-none absolute -translate-x-1/2 flex"
         style={{ height: "var(--s)", ["--s" as string]: `${AV_BIG}px` }}
       >
         {/* Gruppe: alle Mitglieder in einem Avatar gleicher Größe. */}
         <GroupAvatar members={dots} style={{ width: "var(--s)", height: "var(--s)" }} />
       </div>
-      <div ref={pill} className="pointer-events-auto absolute top-0 left-0 w-max" style={{ height: 44, fontSize: 24 }}>
+
         {/* Klick klappt das rechte Panel (ChatSidePanel) auf und zu. */}
         <button
           type="button"
           aria-label={title ?? `Kontakt ${bot.name}`}
-          disabled={!!title}
           onClick={() => window.dispatchEvent(new Event(PANEL_TOGGLE_EVENT))}
           // Glas wie orbitGlass(22, interactive): Blur, heller Schleier, feiner Rand; bei mehr Kontrast deckend.
-          className="flex h-full max-w-full items-center rounded-[22px] bg-foreground/[0.06] font-semibold shadow-sm ring-1 ring-foreground/10 backdrop-blur-xl transition-colors enabled:hover:bg-foreground/10 contrast-more:bg-background contrast-more:ring-foreground/25"
+          className="pointer-events-auto flex h-full max-w-full items-center rounded-[22px] bg-foreground/[0.06] font-semibold shadow-sm ring-1 ring-foreground/10 backdrop-blur-xl transition-colors hover:bg-foreground/10 contrast-more:bg-background contrast-more:ring-foreground/25"
           style={{ paddingInline: PAD_X, gap: GAP }}
         >
-          <span ref={text} className="truncate whitespace-nowrap">
+          <span className="truncate whitespace-nowrap">
             {title ?? bot.name}
           </span>
-          {!title && <ChevronRightIcon className="shrink-0" style={{ width: CHEVRON, height: CHEVRON }} />}
+          <ChevronRightIcon className="shrink-0" style={{ width: CHEVRON, height: CHEVRON }} />
         </button>
       </div>
     </div>

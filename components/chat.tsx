@@ -237,7 +237,7 @@ type ChatProps = {
   avatar?: string | null;
   color?: string | null;
   bot: EditableBot;
-  members: { id: string; name: string; avatar: string; color: string | null }[];
+  members: { id: string; name: string; job: string; isMain: boolean; avatar: string; color: string | null }[];
   title?: string; // nur bei Gruppen: Gruppenname
 };
 
@@ -290,20 +290,26 @@ function ChatBody({
   const avatar = avatarProp || "erdi";
   // Gruppe: Orbi, der die nächste Nachricht beantwortet.
   const isGroup = title !== undefined;
-  const [botId, setBotId] = useState(members[0]?.id);
-  const member = (id?: string) => members.find((m) => m.id === id);
-  const picked = member(botId);
   // Zuletzt gewähltes Modell und Stufen je Chat, lokal im Browser.
   const [saved] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem(`orbit-chat-prefs:${chatId}`) ?? "{}") as {
         modelId?: string;
         efforts?: Record<string, Effort>;
+        botId?: string;
       };
     } catch {
       return {};
     }
   });
+  // Gruppe: zuletzt gewählter Orbi bleibt beim Wiederöffnen.
+  const [pickedId, setBotId] = useState(
+    members.some((m) => m.id === saved.botId) ? saved.botId : members[0]?.id,
+  );
+  const member = (id?: string) => members.find((m) => m.id === id);
+  // Aus der Gruppe entfernter Orbi: auf das erste Mitglied zurückfallen.
+  const botId = member(pickedId) ? pickedId : members[0]?.id;
+  const picked = member(botId);
   const [modelId, setModelId] = useState(
     models.some((m) => m.id === saved.modelId) || saved.modelId === NO_MODEL
       ? saved.modelId!
@@ -328,9 +334,9 @@ function ChatBody({
   }, [attachError]);
   useEffect(() => {
     try {
-      localStorage.setItem(`orbit-chat-prefs:${chatId}`, JSON.stringify({ modelId, efforts }));
+      localStorage.setItem(`orbit-chat-prefs:${chatId}`, JSON.stringify({ modelId, efforts, botId: pickedId }));
     } catch {}
-  }, [chatId, modelId, efforts]);
+  }, [chatId, modelId, efforts, pickedId]);
   const { messages, setMessages, sendMessage, status, stop, resumeStream } = useChat<UIMessage<ChatMetadata>>({
     id: chatId,
     transport,
@@ -419,6 +425,9 @@ function ChatBody({
                 // Reihenfolge bleibt: Text als Bubble, Tool-Aufrufe und Dateien als eigene Zeilen dazwischen.
                 const content = (
                   <div className={cn("flex min-w-0 flex-col gap-2", isAssistant ? "items-start" : "items-end")}>
+                    {message.metadata?.handoffFrom && (
+                      <span className="text-[11px] text-muted-foreground">Von {message.metadata.handoffFrom} übergeben</span>
+                    )}
                     {message.parts.map((part, i) => {
                       const key = `${message.id}-${i}`;
                       if (isToolUIPart(part)) return <ToolCall key={key} part={part} />;
@@ -532,8 +541,11 @@ function ChatBody({
                   <PromptInputSelectContent>
                     {members.map((m) => (
                       <PromptInputSelectItem key={m.id} value={m.id}>
-                        <ChatAvatar seed={m.avatar} color={m.color} className="size-4" />
-                        {m.name}
+                        <ChatAvatar seed={m.avatar} color={m.color} className="size-6" />
+                        <span className="flex flex-col text-left leading-tight">
+                          <span>{m.name}</span>
+                          <span className="text-xs text-muted-foreground">{m.isMain ? "Hauptorbi" : m.job}</span>
+                        </span>
                       </PromptInputSelectItem>
                     ))}
                   </PromptInputSelectContent>
