@@ -1,16 +1,16 @@
 "use client";
 
-import { getToolName, isToolUIPart, type DynamicToolUIPart, type ToolUIPart } from "ai";
-import { ArrowRightLeftIcon, ChevronDownIcon, XCircleIcon } from "lucide-react";
+import { getToolName, isToolUIPart, type DynamicToolUIPart, type ToolUIPart, type UIMessage } from "ai";
+import { ChevronDownIcon } from "lucide-react";
 
 import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from "@/components/ai-elements/tool";
 import { MessageResponse } from "@/components/ai-elements/message";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChatAvatar } from "@/components/chat-avatar";
 import { FileCard, ImagePreview } from "@/components/media";
 import type { HandoffOutput } from "@/trigger/chat";
 import type { Screenshot, SharedFileOutput } from "@/trigger/sandbox-tools";
-import { cn } from "@/lib/utils";
 
 type Part = ToolUIPart | DynamicToolUIPart;
 type Input = Record<string, unknown> | undefined;
@@ -40,8 +40,19 @@ const TITLES: Record<string, (i: Input) => string> = {
   handoff: (i) => `Übergabe an ${cut(i?.target_orbi)}`,
 };
 
-// Übergabe: eine kompakte Zeile; läuft (Schimmer + aktueller Schritt), fertig (zugeklappt) oder fehlgeschlagen.
-// Aufgeklappt zeigt sie, was der Ziel-Orbi getan hat; dessen Antwort fasst der übergebende Orbi darunter selbst zusammen.
+// Kurzer Satz zum aktuellen Schritt des Ziel-Orbis.
+const STEPS: Record<string, string> = {
+  bash: "führt Befehl aus",
+  write_file: "schreibt Datei …",
+  read_file: "liest Datei …",
+  list_files: "sieht Ordner an …",
+  handoff: "gibt weiter …",
+};
+const stepText = (p: UIMessage["parts"][number] | undefined) =>
+  !p ? "startet …" : isToolUIPart(p) ? (STEPS[getToolName(p)] ?? "arbeitet …") : "schreibt die Antwort …";
+
+// Übergabe: eine kompakte Zeile, in allen Chats gleich. Zugeklappt: Avatar, Name und ein Satz zum Stand
+// (wartet, läuft mit Schimmer, fertig mit Vorschau, fehlgeschlagen mit Grund). Aufgeklappt: Aufgabe, Schritte, Antwort.
 function Handoff({ part }: { part: Part }) {
   const h = part.output as HandoffOutput | undefined;
   const input = part.input as Input;
@@ -51,28 +62,31 @@ function Handoff({ part }: { part: Part }) {
   const running = !failed && (part.state !== "output-available" || part.preliminary === true);
   const parts = h?.message?.parts ?? [];
   const last = parts.findLast((p) => isToolUIPart(p) || (p.type === "text" && p.text));
-  const step = !last ? "startet …" : isToolUIPart(last) ? (TITLES[getToolName(last)]?.(last.input as Input) ?? getToolName(last)) : "schreibt die Antwort …";
+  const answer = cut(parts.flatMap((p) => (p.type === "text" ? [p.text] : [])).join(" "), 80);
   return (
     <Collapsible className="w-full max-w-md rounded-lg border text-left text-sm">
       <CollapsibleTrigger className="group/handoff flex w-full items-center gap-2 px-3 py-2 text-left">
-        {failed ? (
-          <XCircleIcon className="size-4 shrink-0 text-destructive" />
-        ) : (
-          <ArrowRightLeftIcon className={cn("size-4 shrink-0 text-muted-foreground", running && "animate-pulse")} />
-        )}
+        {h ? <ChatAvatar seed={h.avatar} color={h.color} className="size-5 shrink-0" /> : <span className="size-5 shrink-0 rounded-full bg-muted" />}
         <span className="min-w-0 flex-1">
-          {running ? (
-            <>
-              <Shimmer as="span" className="block truncate">{`${to} übernimmt: ${cut(task, 60)}`}</Shimmer>
-              <span className="block truncate text-xs text-muted-foreground">{step}</span>
-            </>
-          ) : failed ? (
+          {failed ? (
             <>
               <span className="block truncate">Übergabe an {to} fehlgeschlagen</span>
-              <span className="block text-xs text-destructive">{part.errorText}</span>
+              <span className="block truncate text-xs text-destructive">{part.errorText}</span>
+            </>
+          ) : running ? (
+            <>
+              <span className="block truncate font-medium">{to}</span>
+              {h?.waiting ? (
+                <span className="block truncate text-xs text-muted-foreground">wartet, bis {to} frei ist</span>
+              ) : (
+                <Shimmer as="span" className="block truncate text-xs">{stepText(last)}</Shimmer>
+              )}
             </>
           ) : (
-            <span className="block truncate">{to} hat das übernommen</span>
+            <>
+              <span className="block truncate">{to} hat das übernommen</span>
+              {answer && <span className="block truncate text-xs text-muted-foreground">{answer}</span>}
+            </>
           )}
         </span>
         <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[panel-open]/handoff:rotate-180" />

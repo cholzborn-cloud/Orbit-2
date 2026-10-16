@@ -426,7 +426,7 @@ function ChatBody({
                 const content = (
                   <div className={cn("flex min-w-0 flex-col gap-2", isAssistant ? "items-start" : "items-end")}>
                     {message.metadata?.handoffFrom && (
-                      <span className="text-[11px] text-muted-foreground">Von {message.metadata.handoffFrom} übergeben</span>
+                      <span className="text-[11px] text-muted-foreground">Von {message.metadata.handoffFrom} übergeben{message.metadata.handoffGroup && ` (aus ${message.metadata.handoffGroup})`}</span>
                     )}
                     {message.parts.map((part, i) => {
                       const key = `${message.id}-${i}`;

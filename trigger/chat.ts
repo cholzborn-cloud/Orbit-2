@@ -37,7 +37,7 @@ type ChatBot = {
   direct_chat_id: string | null; // eigener 1:1-Chat, dort landen Übergaben
 };
 
-type ClientData = { model: string; effort?: string; botId?: string; handoffDepth?: number; handoffFrom?: string };
+type ClientData = { model: string; effort?: string; botId?: string; handoffDepth?: number; handoffFrom?: string; handoffGroup?: string };
 
 // Alles, was ein Orbi in diesem Chat braucht.
 type ChatContext = {
@@ -50,6 +50,7 @@ type ChatContext = {
   from?: ChatBot; // hat diese Aufgabe übergeben
   depth: number; // Übergaben in dieser Kette bisher
   clientData?: ClientData;
+  chatName?: string; // Gruppenname
   // Je Ziel-Session nacheinander: eine Session verträgt nur einen Turn gleichzeitig.
   queue: Map<string, Promise<void>>;
 };
@@ -61,6 +62,7 @@ export type HandoffOutput = {
   color: string | null;
   task: string;
   reason: string;
+  waiting?: boolean; // Ziel arbeitet noch an einer anderen Aufgabe
   message?: UIMessage<ChatMetadata>; // bisherige Antwort von B mit Schritten
 };
 
@@ -70,7 +72,7 @@ const MAX_HANDOFF_DEPTH = 3;
 async function loadChat(chatId: string, clientData?: ClientData): Promise<ChatContext | undefined> {
   if (!process.env.DATABASE_URL) return;
   const sql = neon(process.env.DATABASE_URL);
-  const [chatRow] = (await sql`select kind, user_id from chats where id = ${chatId}`) as { kind: string; user_id: string }[];
+  const [chatRow] = (await sql`select kind, user_id, name from chats where id = ${chatId}`) as { kind: string; user_id: string; name: string | null }[];
   const [owner] = chatRow ? [chatRow] : ((await sql`select user_id from bots where id = ${clientData?.botId ?? ""}`) as { user_id: string }[]);
   if (!owner) return;
   const team = (await sql`
@@ -92,6 +94,7 @@ async function loadChat(chatId: string, clientData?: ClientData): Promise<ChatCo
     from: team.find((b) => b.id === clientData?.handoffFrom),
     depth: clientData?.handoffDepth ?? 0,
     clientData,
+    chatName: chatRow?.name ?? undefined,
     queue: new Map(),
   };
 }
@@ -131,16 +134,21 @@ function handoffTool(ctx: ChatContext) {
 
       const base: HandoffOutput = { to: target.name, avatar: target.avatar, color: target.color, task, reason };
       yield base;
-      const id = ctx.isGroup || ctx.hidden || !target.direct_chat_id ? `handoff-${crypto.randomUUID()}` : target.direct_chat_id;
+      // Aus Gruppen: ebenfalls der 1:1-Chat des Ziels (Label nennt die Gruppe); Weitergaben aus so einer Übergabe bleiben unsichtbar.
+      const group = ctx.isGroup ? ctx.chatName : ctx.clientData?.handoffGroup;
+      const hidden = ctx.hidden || !target.direct_chat_id || (ctx.depth > 0 && !!ctx.clientData?.handoffGroup);
+      const id = hidden ? `handoff-${crypto.randomUUID()}` : target.direct_chat_id!;
       const prev = ctx.queue.get(id);
       let release = () => {};
-      ctx.queue.set(id, new Promise<void>((r) => (release = r)));
+      const mine = new Promise<void>((r) => (release = r));
+      ctx.queue.set(id, mine);
+      if (prev) yield { ...base, waiting: true };
       await prev;
       try {
         const agent = new AgentChat({
           agent: "orbit-chat",
           id,
-          clientData: { ...ctx.clientData, context: true, botId: target.id, handoffDepth: ctx.depth + 1, handoffFrom: bot.id },
+          clientData: { ...ctx.clientData, context: true, botId: target.id, handoffDepth: ctx.depth + 1, handoffFrom: bot.id, handoffGroup: group },
           streamTimeoutSeconds: 240,
         });
         const stream = await agent.sendRaw(
@@ -149,7 +157,7 @@ function handoffTool(ctx: ChatContext) {
               id: crypto.randomUUID(),
               role: "user",
               parts: [{ type: "text", text: [task, context && `Kontext: ${context}`].filter(Boolean).join("\n\n") }],
-              metadata: { handoffFrom: bot.name },
+              metadata: { handoffFrom: bot.name, handoffGroup: ctx.isGroup ? group : undefined },
             },
           ],
           { abortSignal },
@@ -167,6 +175,7 @@ function handoffTool(ctx: ChatContext) {
         yield { ...base, message: last };
       } finally {
         release();
+        if (ctx.queue.get(id) === mine) ctx.queue.delete(id);
       }
     },
     // A braucht nur B's Antworttext, nicht alle Schritte.
@@ -243,6 +252,7 @@ export const orbitChat = chat
       // Nur bei Übergaben (AgentChat aus dem `handoff`-Tool): Tiefe der Kette und übergebender Orbi.
       handoffDepth: z.number().int().optional(),
       handoffFrom: z.string().optional(),
+      handoffGroup: z.string().optional(),
     }),
   })
   .agent({

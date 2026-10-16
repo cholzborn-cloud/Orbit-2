@@ -243,7 +243,7 @@ export function BotForm({
                     checked={!!field.value}
                     onCheckedChange={(checked) => {
                       field.onChange(checked);
-                      // Hauptbot hat eine feste Aufgabe, keine frei wählbare Profession.
+                      // Hauptorbi hat eine feste Aufgabe, keine frei wählbare Profession.
                       if (checked) {
                         form.setValue("job", MAIN_JOB, { shouldValidate: true });
                         form.setValue("instructions", describeJob(MAIN_JOB, true));
@@ -255,7 +255,7 @@ export function BotForm({
                   />
                 )}
               />
-              <FieldLabel htmlFor="bot-main">Hauptbot</FieldLabel>
+              <FieldLabel htmlFor="bot-main">Hauptorbi</FieldLabel>
             </Field>
 
             <Field data-invalid={!!errors.job}>

@@ -32,6 +32,7 @@ export const fillTo = (text: string, n: number) =>
 export type ChatMetadata = {
   botId?: string; // antwortender Orbi (Gruppenchat)
   handoffFrom?: string; // Nutzernachricht kam per Übergabe von diesem Orbi
+  handoffGroup?: string; // Übergabe stammt aus dieser Gruppe
   model?: string;
   effort?: string;
   startedAt?: number;
