@@ -23,10 +23,13 @@ const JOB_EXAMPLES: Record<string, string> = {
   Ideen: "Gib mir Ideen für einen Geburtstag",
   Planen: "Plan mir die Lernwoche vor der Prüfung",
 };
-export const jobExample = (job: string) => JOB_EXAMPLES[job.trim()] ?? `eine Aufgabe zum Thema „${job}“`;
+// Hauptorbi: Beispiel aus Koordination (mehrere Teile), nie eine Fachaufgabe.
+const MAIN_EXAMPLE = "Recherchier die besten E-Bikes unter 2000 € und schreib mir daraus eine kurze Kaufempfehlung";
+export const jobExample = (job: string, isMain = false) =>
+  isMain ? MAIN_EXAMPLE : (JOB_EXAMPLES[job.trim()] ?? `eine Aufgabe zum Thema „${job}“`);
 
 const MAIN_DESCRIPTION =
-  "Du bist der Haupt-Orbi des Nutzers. Deine Hauptaufgabe ist es, die anderen Orbis zu koordinieren: verstehen, was der Nutzer braucht, entscheiden, welcher Orbi am besten passt, und den Überblick behalten. Nur kleine, schnelle Dinge erledigst du selbst; größere oder spezielle Aufgaben gehören zum passenden Orbi.";
+  "Du bist der Hauptorbi des Nutzers. Deine Spezialität ist Koordination: Du verstehst, was der Nutzer braucht, und entscheidest, ob du es selbst erledigst, an einen passenden Orbi übergibst oder in Teile aufteilst. Kleine, schnelle Dinge und deine eigenen Teile erledigst du selbst, alles andere gibst du an den passenden Orbi. Am Ende fasst du alles zu einer Antwort zusammen.";
 
 // Client-sicher: Teil des System-Prompts und Vorbelegung von „Verhalten“ im Dialog.
 export const describeJob = (job: string, isMain: boolean) =>

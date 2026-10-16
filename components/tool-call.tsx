@@ -52,7 +52,7 @@ const stepText = (p: UIMessage["parts"][number] | undefined) =>
 
 // Übergabe: eine kompakte Zeile, in allen Chats gleich. Zugeklappt: Avatar, Name und ein Satz zum Stand
 // (wartet, läuft mit Schimmer, fertig mit Vorschau, fehlgeschlagen mit Grund). Aufgeklappt: Aufgabe, Schritte, Antwort.
-function Handoff({ part, live }: { part: Part; live: boolean }) {
+function Handoff({ part, live, by, writing }: { part: Part; live: boolean; by?: string; writing: boolean }) {
   const h = part.output as HandoffOutput | undefined;
   const input = part.input as Input;
   const task = String(h?.task ?? input?.task ?? "");
@@ -87,7 +87,10 @@ function Handoff({ part, live }: { part: Part; live: boolean }) {
               {h?.waiting ? (
                 <span className="block truncate text-xs text-muted-foreground">wartet, bis {to} frei ist</span>
               ) : (
-                <Shimmer as="span" className="block truncate text-xs">{stepText(last)}</Shimmer>
+                <>
+                  <Shimmer as="span" className="block truncate text-xs">{stepText(last)}</Shimmer>
+                  {h && by && !writing && <span className="block truncate text-[11px] text-muted-foreground">{by} wartet auf {to}</span>}
+                </>
               )}
             </>
           ) : (
@@ -115,8 +118,8 @@ function Handoff({ part, live }: { part: Part; live: boolean }) {
 const BINARY_TOOLS = new Set(["view_screen", "show_screen", "share_file"]);
 const TOOL_CLASS = "mb-0 w-full max-w-md text-left";
 
-// `live`: der Turn dieser Nachricht streamt gerade.
-export function ToolCall({ part, live = false }: { part: Part; live?: boolean }) {
+// `live`: der Turn dieser Nachricht streamt gerade. `by`: Orbi, der übergibt; `writing`: er arbeitet parallel (schreibt noch).
+export function ToolCall({ part, live = false, by, writing = false }: { part: Part; live?: boolean; by?: string; writing?: boolean }) {
   const name = getToolName(part);
   const title = TITLES[name]?.(part.input as Input) ?? name;
   const header = (
@@ -144,7 +147,7 @@ export function ToolCall({ part, live = false }: { part: Part; live?: boolean })
     );
   }
 
-  if (name === "handoff") return <Handoff part={part} live={live} />;
+  if (name === "handoff") return <Handoff part={part} live={live} by={by} writing={writing} />;
 
   // Vom Orbi gesendete Datei: Vorschau bzw. Karte mit Öffnen und Herunterladen.
   if (name === "share_file" && part.state === "output-available") {

@@ -1,7 +1,7 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { chat } from "@trigger.dev/sdk/ai";
 import { AgentChat } from "@trigger.dev/sdk/chat";
-import { isStepCount, readUIMessageStream, tool, wrapLanguageModel, type ToolSet, type UIMessage } from "ai";
+import { isStepCount, readUIMessageStream, tool, wrapLanguageModel, type StreamTextTransform, type ToolSet, type UIMessage } from "ai";
 import { neon } from "@neondatabase/serverless";
 import { z } from "zod";
 
@@ -118,7 +118,7 @@ function handoffTool(ctx: ChatContext) {
   const bot = ctx.speaker;
   return tool({
     description:
-      "Give a task to another of the user's Orbis that fits better. Call it BEFORE you answer whenever the request is clearly in another Orbi's specialty, needs a tool you lack that the other Orbi has, or (as main Orbi) has several parts or needs coordination: then call it once per part. The target works on `task` alone (no chat history) with its own tools; you get its result and then give the user a short summary in your own words. Do NOT use it for trivial things you can answer well yourself, to yourself, or back to the Orbi that handed the task to you.",
+      "Hand a task to another of the user's Orbis. The target works on `task` alone (no chat history) with its own tools and returns its result. Several calls in the same step run in parallel. When to use it: see your instructions.",
     inputSchema: z.object({
       target_orbi: z.string().describe("Id or exact name of the Orbi that should take over"),
       reason: z.string().describe("One short sentence why this Orbi fits better"),
@@ -229,7 +229,56 @@ function handoffTool(ctx: ChatContext) {
   });
 }
 
-const line = (b: ChatBot) => `${b.name} (id ${b.id}): ${b.job}${b.is_main ? ", main Orbi" : ""}`;
+// Das Modell ahmt gern die Absender-Marker aus dem Gruppenverlauf nach ("[Name]: ..."). Vorn abschneiden, auch beim Streaming:
+// der Anfang jedes Textblocks wird gehalten, bis klar ist, ob er ein Marker ist.
+const escapeRe = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function stripSenderTag(names: string[]): StreamTextTransform<ToolSet> {
+  const tag = new RegExp(`^\\s*\\[(?:${names.map(escapeRe).join("|")})\\]:\\s*`);
+  const maybeTag = /^\s*(\[[^\]\n]{0,40}(\]:?)?)?$/;
+  return () => {
+    const held = new Map<string, string>(); // Textblock -> bisheriger, noch unentschiedener Anfang
+    const trim = new Set<string>(); // Marker ist weg, folgende Leerzeichen auch
+    return new TransformStream({
+      transform(part, controller) {
+        if (part.type === "text-start") held.set(part.id, "");
+        else if (part.type === "text-delta") {
+          let text = part.text;
+          const before = held.get(part.id);
+          if (before !== undefined) {
+            const all = before + text;
+            const m = tag.exec(all);
+            if (m) {
+              held.delete(part.id);
+              trim.add(part.id);
+              text = all.slice(m[0].length);
+            } else if (maybeTag.test(all)) {
+              held.set(part.id, all);
+              return;
+            } else {
+              held.delete(part.id);
+              text = all;
+            }
+          }
+          if (trim.has(part.id)) {
+            text = text.trimStart();
+            if (text) trim.delete(part.id);
+          }
+          if (text) controller.enqueue({ ...part, text });
+          return;
+        } else if (part.type === "text-end") {
+          const rest = held.get(part.id);
+          if (rest) controller.enqueue({ type: "text-delta", id: part.id, text: rest });
+          held.delete(part.id);
+          trim.delete(part.id);
+        }
+        controller.enqueue(part);
+      },
+    });
+  };
+}
+
+const line = (b: ChatBot) =>
+  `${b.name} (id ${b.id}): ${b.is_main ? "main Orbi, coordinates the user's Orbis: splits tasks and delegates the parts" : b.job}`;
 
 // Pro Chat aus der echten Tool-Liste gebaut, damit der Prompt nie veraltet.
 export function systemPrompt(ctx: ChatContext, tools: ToolSet) {
@@ -249,10 +298,10 @@ export function systemPrompt(ctx: ChatContext, tools: ToolSet) {
       ? `The latest message is a task that ${from.name} (another Orbi of the user) handed to you. Do it fully and answer directly with the result; ${from.name} gets your answer and passes it on to the user.`
       : "",
     ctx.isGroup
-      ? `This is a group chat with the user and several Orbis: ${groupOthers.map(line).join("; ")}. Messages may not be addressed to you. The user picked YOU (${bot.name}) to reply to this message: reply as ${bot.name} only, never on behalf of another Orbi. Keep replies short, do not repeat what others said and do not talk over another Orbi. Earlier replies of other Orbis are marked "[Name]:" in the history; do not write that marker yourself.`
+      ? `This is a group chat with the user and several Orbis: ${groupOthers.map(line).join("; ")}. Messages may not be addressed to you. The user picked YOU (${bot.name}) to reply to this message: reply as ${bot.name} only, never on behalf of another Orbi. Keep replies short, do not repeat what others said and do not talk over another Orbi. Earlier replies of other Orbis are marked "[Name]:" in the history; NEVER start your reply with such a marker or any "[Name]:" prefix, not even your own name.`
       : "",
     bot.is_main
-      ? "You are the main Orbi: you coordinate the user's other Orbis. Do small, quick things and general questions yourself. When a request has several parts or needs specialised work, split it and delegate each part to the fitting Orbi, then give the user ONE combined answer."
+      ? "You are the main Orbi: coordinating is your specialty. Do small, quick things and your own parts yourself; delegate everything else as described under handoff."
       : "",
     others.length ? `The user's other Orbis: ${others.map(line).join("; ")}.` : "The user has no other Orbis.",
     names.length
@@ -260,12 +309,14 @@ export function systemPrompt(ctx: ChatContext, tools: ToolSet) {
       : "You have no tools in this chat. If something needs a tool, say so honestly.",
     canHandOff
       ? [
-          "Handing off (`handoff`), decide this FIRST, before you write anything:",
-          "- Hand off on your own, without being asked, when the task clearly fits another Orbi's specialty or tools better than yours, when you lack a tool it needs and another Orbi has it, or (as main Orbi) when it has several parts or needs coordination.",
-          "- Do not start with a weak answer, do not ask the user for permission, and do not talk about handoffs or tools in your text. Just call the tool.",
-          `- Never for trivial things you can answer well yourself, never to yourself${from ? `, never back to ${from.name}` : ""}. If no Orbi fits better, answer yourself.`,
-          "- After the result arrives, give the user the result as your own answer, summarised in your own words; at most name the other Orbi in passing, do not explain who did what. If the handoff failed, tell the user briefly and answer yourself if you can.",
-          others.length ? `Examples: ${others.map((o) => `"${jobExample(o.job)}" -> ${o.name}`).join("; ")}.` : "",
+          "Handoff (`handoff`): before you write anything, decide silently, in this order:",
+          "1. Small or quick, or you are unsure: do it yourself. This saves the user's usage.",
+          "2. One other Orbi clearly fits better, or you lack a tool it has: hand off the whole task to it.",
+          "3. Several parts: split it. Parts that do not depend on each other: call `handoff` for all of them in the same step, they run in parallel. A part that needs another part's result: wait for that result, then continue or hand off again. Do your own parts yourself.",
+          "Never narrate the plan, never ask permission for an ordinary handoff, never mention handoff mechanics in your text. Just call the tool. Once the results are in, give the user ONE combined answer in your own words; name another Orbi at most in passing.",
+          `Guards: never to yourself${from ? `, never back to ${from.name}` : ""}, never for trivial things. Handoffs chain at most ${MAX_HANDOFF_DEPTH} deep.`,
+          "If a handoff failed, tell the user briefly and answer yourself if you can. For a follow-up about a result you already have, answer from it; hand off again only if you cannot.",
+          others.length ? `Examples: ${others.map((o) => `"${jobExample(o.job, o.is_main)}" -> ${o.name}`).join("; ")}.` : "",
         ]
           .filter(Boolean)
           .join("\n")
@@ -399,6 +450,7 @@ export const orbitChat = chat
         tools,
         // Computer Use braucht viele Schritte (ansehen, klicken, prüfen).
         stopWhen: isStepCount(40),
+        ...(ctx?.isGroup && { experimental_transform: stripSenderTag(ctx.team.map((b) => b.name)) }),
         messages: clientData?.context === false ? history.slice(-1) : history,
         abortSignal: signal,
         ...(wantsEffort && { providerOptions: { openai: { reasoningEffort: effort as string } } }),

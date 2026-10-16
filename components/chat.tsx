@@ -309,6 +309,8 @@ function ChatBody({
   const member = (id?: string) => members.find((m) => m.id === id);
   // Aus der Gruppe entfernter Orbi: auf das erste Mitglied zurückfallen.
   const botId = member(pickedId) ? pickedId : members[0]?.id;
+  // Ältere Antworten können noch mit "[Name]: " beginnen (Marker aus dem Gruppenverlauf); nie anzeigen.
+  const senderTag = new RegExp(`^\\s*\\[(?:${members.map((m) => m.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})\\]:\\s*`);
   const picked = member(botId);
   const [modelId, setModelId] = useState(
     models.some((m) => m.id === saved.modelId) || saved.modelId === NO_MODEL
@@ -414,10 +416,13 @@ function ChatBody({
           ) : (
             <>
               {messages.map((message) => {
-                const text = message.parts
-                  .map((p) => (p.type === "text" ? p.text : ""))
-                  .join("");
                 const isAssistant = message.role === "assistant";
+                const shown = (t: string) => (isAssistant ? t.replace(senderTag, "") : t);
+                const text = message.parts
+                  .map((p) => (p.type === "text" ? shown(p.text) : ""))
+                  .join("");
+                // Der Orbi schreibt oder ruft noch Werkzeuge auf, also arbeitet er parallel zu laufenden Übergaben.
+                const writing = message.parts.some((p) => (p.type === "text" && p.state === "streaming") || (isToolUIPart(p) && p.state === "input-streaming"));
                 const hasTools = message.parts.some((p) => isToolUIPart(p) || p.type === "file");
                 const who = member(message.metadata?.botId);
                 // Leere Assistant-Nachricht (Stream läuft, noch nichts da): zeigt die Schreib-Animation.
@@ -430,16 +435,16 @@ function ChatBody({
                     )}
                     {message.parts.map((part, i) => {
                       const key = `${message.id}-${i}`;
-                      if (isToolUIPart(part)) return <ToolCall key={key} part={part} live={status === "streaming" && message.id === messages.at(-1)?.id} />;
+                      if (isToolUIPart(part)) return <ToolCall key={key} part={part} live={status === "streaming" && message.id === messages.at(-1)?.id} by={(who ?? bot).name} writing={writing} />;
                       if (part.type === "file") return <FileCard key={key} file={part} />;
-                      if (part.type !== "text" || !part.text) return null;
+                      if (part.type !== "text" || !shown(part.text)) return null;
                       return (
                         <MessageContent
                           key={key}
                           className={isAssistant ? BUBBLE : undefined}
                           style={isAssistant ? undefined : bubbleStyle(userColor)}
                         >
-                          <MessageResponse>{part.text}</MessageResponse>
+                          <MessageResponse>{shown(part.text)}</MessageResponse>
                         </MessageContent>
                       );
                     })}
