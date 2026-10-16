@@ -47,6 +47,7 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { ChatAvatar, ORBI_BASE_COLORS, orbiFromSeed } from "@/components/chat-avatar";
 import { dataUrlBytes, FileCard, formatBytes, shrinkImage } from "@/components/media";
+import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { ToolCall } from "@/components/tool-call";
 import { loadTranscript, mintChatAccessToken, startChatSession, touchChat } from "@/actions/chat";
 import type { EditableBot } from "@/components/bot-dialog";
@@ -241,6 +242,24 @@ type ChatProps = {
   title?: string; // nur bei Gruppen: Gruppenname
 };
 
+// Antwort-Chips: der Orbi hängt einen ```options-Block an (eine Option je Zeile). Der Block wird nie angezeigt, auch nicht halb geschrieben.
+function splitOptions(text: string): { text: string; options: string[] } {
+  const done = text.match(/\n*```options[ \t]*\n([\s\S]*?)\n?```\s*$/);
+  if (done)
+    return {
+      text: text.slice(0, done.index).trimEnd(),
+      options: done[1].split("\n").map((l) => l.replace(/^[-*]\s*/, "").trim()).filter(Boolean).slice(0, 3),
+    };
+  const fence = text.lastIndexOf("```");
+  if (fence >= 0 && (text.match(/^```/gm)?.length ?? 0) % 2) {
+    const rest = text.slice(fence + 3);
+    const nl = rest.indexOf("\n");
+    const info = (nl < 0 ? rest : rest.slice(0, nl)).trim();
+    if (nl < 0 ? "options".startsWith(info) : info === "options") return { text: text.slice(0, fence).trimEnd(), options: [] };
+  }
+  return { text: text.replace(/(^|\n)`{1,2}$/, ""), options: [] };
+}
+
 function readSession(chatId: string) {
   try {
     const raw = localStorage.getItem(`orbit-chat-session:${chatId}`);
@@ -366,6 +385,19 @@ function ChatBody({
   const { sendAction } = useChatActions({ sendMessage });
   // Gespeicherte Nachrichten erscheinen ohne Einblende-Animation.
   const restoredIds = useRef(new Set(initialMessages.map((m) => m.id)));
+  // Antwort-Chips nur unter der letzten Antwort dieser Sitzung (nicht nach Reload), solange nichts Neues gesendet wurde.
+  const lastMsg = messages.at(-1);
+  const lastText = lastMsg?.role === "assistant" ? lastMsg.parts.findLast((p) => p.type === "text") : undefined;
+  const options = status === "ready" && lastMsg && !restoredIds.current.has(lastMsg.id) && lastText?.type === "text" ? splitOptions(lastText.text.replace(senderTag, "")).options : [];
+  // Eine Nachricht während eines laufenden Turns ginge verloren: das Textfeld ist gesperrt, bis der Orbi fertig ist.
+  const busy = status === "submitted" || status === "streaming";
+  const answer = (text: string) => {
+    if (!model) return;
+    void touchChat(chatId);
+    // Gruppe: die Antwort geht an den Orbi, der gefragt hat.
+    sendMessage({ text }, { metadata: { model: model.id, effort, context, botId: lastMsg?.metadata?.botId ?? botId } });
+  };
+
   // Beim Öffnen sofort ganz unten, vor dem ersten Zeichnen.
   const conv = useRef<StickToBottomContext>(null);
   useLayoutEffect(() => {
@@ -417,7 +449,7 @@ function ChatBody({
             <>
               {messages.map((message) => {
                 const isAssistant = message.role === "assistant";
-                const shown = (t: string) => (isAssistant ? t.replace(senderTag, "") : t);
+                const shown = (t: string) => (isAssistant ? splitOptions(t.replace(senderTag, "")).text : t);
                 const text = message.parts
                   .map((p) => (p.type === "text" ? shown(p.text) : ""))
                   .join("");
@@ -479,6 +511,13 @@ function ChatBody({
                   </Message>
                 );
               })}
+              {options.length > 0 && (
+                <Suggestions className="ml-8">
+                  {options.map((o) => (
+                    <Suggestion key={o} suggestion={o} onClick={answer} />
+                  ))}
+                </Suggestions>
+              )}
               {(status === "submitted" ||
                 (status === "streaming" &&
                   !messages
@@ -492,6 +531,7 @@ function ChatBody({
         <ConversationScrollButton className="z-20" />
       </Conversation>
       <div className="px-3 pt-2 pb-3">
+        {busy && <p className="mb-1.5 px-1 text-xs text-muted-foreground">{(member(lastMsg?.metadata?.botId) ?? picked ?? bot).name} arbeitet noch …</p>}
         {attachError && (
           <p role="alert" className="mb-1.5 px-1 text-xs text-destructive">
             {attachError}
@@ -529,7 +569,7 @@ function ChatBody({
         >
           <ComposerAttachments />
           <PromptInputBody>
-            <PromptInputTextarea placeholder="Was möchtest du wissen?" className="min-h-10" onKeyDown={continueList} />
+            <PromptInputTextarea placeholder="Was möchtest du wissen?" disabled={busy} className="min-h-10" onKeyDown={continueList} />
           </PromptInputBody>
           <PromptInputFooter>
             <PromptInputTools>

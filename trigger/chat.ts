@@ -163,6 +163,9 @@ function handoffTool(ctx: ChatContext) {
       ctx.queue.set(id, mine);
       if (prev) yield { ...base, waiting: true };
       await prev;
+      // Eigene Frist unter dem Turn-Limit: danach bekommt der Orbi einen Fehler statt dass sein ganzer Turn abbricht.
+      const timeout = AbortSignal.timeout(200_000);
+      const signal = abortSignal ? AbortSignal.any([abortSignal, timeout]) : timeout;
       try {
         const agent = new AgentChat({
           agent: "orbit-chat",
@@ -175,7 +178,7 @@ function handoffTool(ctx: ChatContext) {
         // dann senden. Reicht das nicht, trägt jeder Turn die handoffId, fremde Turns werden übersprungen.
         if (!hidden) {
           await agent.preload();
-          const settled = await agent.reconnect(abortSignal);
+          const settled = await agent.reconnect(signal);
           await settled?.pipeTo(new WritableStream());
         }
         let stream = await agent.sendRaw(
@@ -187,13 +190,12 @@ function handoffTool(ctx: ChatContext) {
               metadata: { handoffFrom: bot.name, handoffGroup: ctx.isGroup ? group : undefined },
             },
           ],
-          { abortSignal },
+          { abortSignal: signal },
         );
         // Höchstens alle 400 ms ein Zwischenstand; jeder ist die ganze bisherige Nachricht.
         let last: UIMessage<ChatMetadata> | undefined;
         let sentAt = 0;
-        const deadline = Date.now() + 240_000;
-        while (!abortSignal?.aborted && Date.now() < deadline) {
+        while (!signal.aborted) {
           for await (const message of readUIMessageStream<UIMessage<ChatMetadata>>({ stream })) {
             if (message.metadata?.handoffId !== handoffId) continue;
             last = message;
@@ -203,8 +205,9 @@ function handoffTool(ctx: ChatContext) {
           }
           if (last) break;
           // shortcut: privater SDK-Aufruf, nächster Turn derselben Session; bei SDK-Update prüfen.
-          stream = await (agent as unknown as { subscribeToSessionStream(s?: AbortSignal, o?: object): Promise<typeof stream> }).subscribeToSessionStream(abortSignal, { resumeAfterEof: true });
+          stream = await (agent as unknown as { subscribeToSessionStream(s?: AbortSignal, o?: object): Promise<typeof stream> }).subscribeToSessionStream(signal, { resumeAfterEof: true });
         }
+        if (timeout.aborted && !answerText(last)) throw new Error("timeout");
         yield answerText(last) ? { ...base, message: last } : { ...base, message: last, error: `${target.name} hat keine Antwort geliefert.` };
       } catch (e) {
         if (abortSignal?.aborted) throw e;
@@ -212,7 +215,7 @@ function handoffTool(ctx: ChatContext) {
         const msg = e instanceof Error ? e.message : String(e);
         yield {
           ...base,
-          error: /timeout|timed out/i.test(msg)
+          error: timeout.aborted || /timeout|timed out/i.test(msg)
             ? `${target.name} hat nicht rechtzeitig geantwortet (Zeitüberschreitung).`
             : `${target.name} nicht erreichbar: ${msg.slice(0, 120)}`,
         };
@@ -224,7 +227,7 @@ function handoffTool(ctx: ChatContext) {
     // A braucht nur B's Antworttext, nicht alle Schritte.
     toModelOutput: ({ output }) => ({
       type: "text",
-      value: output.error ? `Handoff failed: ${output.error}` : `Result from ${output.to}:\n${answerText(output.message)}`,
+      value: output.error ? `Handoff failed: ${output.error} Do not retry and do not hand off to another Orbi on your own. Tell the user briefly what failed and ask what to do, with the options block (retry / do it yourself / leave it).` : `Result from ${output.to}:\n${answerText(output.message)}`,
     }),
   });
 }
@@ -295,7 +298,7 @@ export function systemPrompt(ctx: ChatContext, tools: ToolSet) {
     // Verhalten ist mit der Standardbeschreibung vorbelegt; leer = Standard.
     bot.instructions || describeJob(bot.job, bot.is_main),
     from
-      ? `The latest message is a task that ${from.name} (another Orbi of the user) handed to you. Do it fully and answer directly with the result; ${from.name} gets your answer and passes it on to the user.`
+      ? `The latest message is a task that ${from.name} (another Orbi of the user) handed to you. Do it fully and answer directly with the result; ${from.name} gets your answer and passes it on to the user. Do not ask the user anything and add no options block: decide yourself.`
       : "",
     ctx.isGroup
       ? `This is a group chat with the user and several Orbis: ${groupOthers.map(line).join("; ")}. Messages may not be addressed to you. The user picked YOU (${bot.name}) to reply to this message: reply as ${bot.name} only, never on behalf of another Orbi. Keep replies short, do not repeat what others said and do not talk over another Orbi. Earlier replies of other Orbis are marked "[Name]:" in the history; NEVER start your reply with such a marker or any "[Name]:" prefix, not even your own name.`
@@ -313,9 +316,11 @@ export function systemPrompt(ctx: ChatContext, tools: ToolSet) {
           "1. Small or quick, or you are unsure: do it yourself. This saves the user's usage.",
           "2. One other Orbi clearly fits better, or you lack a tool it has: hand off the whole task to it.",
           "3. Several parts: split it. Parts that do not depend on each other: call `handoff` for all of them in the same step, they run in parallel. A part that needs another part's result: wait for that result, then continue or hand off again. Do your own parts yourself.",
-          "Never narrate the plan, never ask permission for an ordinary handoff, never mention handoff mechanics in your text. Just call the tool. Once the results are in, give the user ONE combined answer in your own words; name another Orbi at most in passing.",
+          "BIG task = two or more OTHER Orbis are involved, or the work will likely take long. Then do NOT hand off yet: end your turn with a short plan (3 to 6 lines \"Orbi: part\", plus your own part) and ask whether to start. Never ask this for small or clear tasks. After the user answers: confirmed = run the handoffs; \"do it all yourself\" = no handoffs for this task; \"split differently\" = ask what to change, then plan again.",
+          "Otherwise never narrate the plan, never ask permission for an ordinary handoff, never mention handoff mechanics in your text. Just call the tool. Once the results are in, give the user ONE combined answer in your own words; name another Orbi at most in passing.",
           `Guards: never to yourself${from ? `, never back to ${from.name}` : ""}, never for trivial things. Handoffs chain at most ${MAX_HANDOFF_DEPTH} deep.`,
-          "If a handoff failed, tell the user briefly and answer yourself if you can. For a follow-up about a result you already have, answer from it; hand off again only if you cannot.",
+          "If a handoff failed (error or timeout): say briefly what failed and ask what to do. Answers: retry = the same handoff once more; do it yourself = do it yourself; leave it = stop. For a follow-up about a result you already have, answer from it; hand off again only if you cannot.",
+          "When you ask the user (big plan or failed handoff), end your message with exactly one fenced block named options, 2 to 3 lines, each a short answer of at most 4 words in the user's language, e.g.:\n```options\nSo starten\nAnders aufteilen\nAlles selbst machen\n```\n(failure: Nochmal versuchen / Selbst machen / Lassen). Nothing after the block. Use the block only for these two cases.",
           others.length ? `Examples: ${others.map((o) => `"${jobExample(o.job, o.is_main)}" -> ${o.name}`).join("; ")}.` : "",
         ]
           .filter(Boolean)
