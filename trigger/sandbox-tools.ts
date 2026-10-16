@@ -2,11 +2,14 @@ import { Daytona, type Sandbox } from "@daytona/sdk";
 import { tool, type ToolSet } from "ai";
 import { z } from "zod";
 
+import { MEMORY_PATH } from "./attachments";
+
 // Eigener Client im Worker: lib/daytona.ts ist server-only.
 // apiUrl explizit, sonst bricht das SDK ab, wenn .env.local und Prozess-Umgebung beide den Wert setzen.
 const daytona = new Daytona({ apiKey: process.env.DAYTONA_API_KEY, apiUrl: process.env.DAYTONA_API_URL });
 
 const MAX_OUTPUT = 10_000;
+const MAX_MEMORY = 8_000;
 const tail = (s: string) => (s.length > MAX_OUTPUT ? `…(gekürzt)\n${s.slice(-MAX_OUTPUT)}` : s);
 
 // Sandbox holen und ggf. starten (stoppt nach 15 Min Leerlauf).
@@ -14,6 +17,35 @@ export async function startSandbox(sandboxId: string) {
   const sb = await daytona.get(sandboxId);
   if (sb.state !== "started") await sb.start();
   return sb;
+}
+
+// MEMORY.md des Orbis für den Prompt; fehlt die Datei (ältere Sandbox) oder ist sie leer, kommt "".
+export async function readMemory(sandboxId: string) {
+  const sb = await startSandbox(sandboxId);
+  const text = (await sb.fs.downloadFile(MEMORY_PATH).catch(() => Buffer.alloc(0))).toString("utf8").trim();
+  // shortcut: harte Kürzung, nicht Zusammenfassen; bei langen Dateien soll der Orbi sie selbst straffen.
+  return text.length > MAX_MEMORY ? `${text.slice(0, MAX_MEMORY)}\n…(gekürzt, Datei ist zu lang: straffe sie)` : text;
+}
+
+// Gedächtnis-Tools laufen auch im Gruppenchat: sie brauchen nur die Datei, keine Sandbox-Steuerung.
+export function memoryTools(sandboxId: string) {
+  return {
+    memory_get: tool({
+      description: "Read your long-term memory (MEMORY.md): what you know about the user from all chats, including private 1:1 chats.",
+      inputSchema: z.object({}),
+      execute: async () => ({ content: await readMemory(sandboxId) }),
+    }),
+    memory_set: tool({
+      description: `Replace your long-term memory with \`content\` (the whole file, markdown, max ${MAX_MEMORY} chars). Keep what is still true, add the new fact, drop outdated lines. Call it in the same turn as soon as the user tells you something worth remembering.`,
+      inputSchema: z.object({ content: z.string() }),
+      execute: async ({ content }) => {
+        if (content.length > MAX_MEMORY) throw new Error(`Zu lang (${content.length} Zeichen, max ${MAX_MEMORY}). Fasse zusammen und rufe erneut auf.`);
+        const sb = await startSandbox(sandboxId);
+        await sb.fs.uploadFile(Buffer.from(content, "utf8"), MEMORY_PATH);
+        return { ok: true, chars: content.length };
+      },
+    }),
+  } satisfies ToolSet;
 }
 
 export type SharedFileOutput = { filename: string; mediaType: string; size: number; data: string };

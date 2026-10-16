@@ -2,6 +2,8 @@ import type { LanguageModelMiddleware, ModelMessage } from "ai";
 
 // Vom Nutzer angehängte Dateien landen zusätzlich hier in der Sandbox des Orbis.
 export const UPLOADS_DIR = "/home/daytona/uploads";
+// Gedächtnis des Orbis: wird beim Anlegen der Sandbox erzeugt, im 1:1-Chat gepflegt und in jedem Chat in den Prompt geladen.
+export const MEMORY_PATH = "/home/daytona/MEMORY.md";
 const MAX_TEXT = 20_000;
 
 // Dateiname kommt vom Client: nur Basisname, keine Pfadteile, begrenzte Länge.

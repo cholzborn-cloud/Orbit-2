@@ -2,11 +2,19 @@ import "server-only";
 
 import { Daytona } from "@daytona/sdk";
 
+import { MEMORY_PATH } from "@/trigger/attachments";
+
 // apiUrl explizit, sonst bricht das SDK ab, wenn .env.local und Prozess-Umgebung beide den Wert setzen.
 const daytona = new Daytona({ apiKey: process.env.DAYTONA_API_KEY, apiUrl: process.env.DAYTONA_API_URL });
 
 export async function createSandbox(botId: string) {
   const sandbox = await daytona.create({ labels: { botId } });
+  try {
+    await sandbox.fs.uploadFile(Buffer.alloc(0), MEMORY_PATH);
+  } catch (e) {
+    // Leere Datei ist nur Komfort: der Orbi legt sie beim ersten Schreiben selbst an, Anlegen der Sandbox darf nicht scheitern.
+    console.error("MEMORY.md konnte nicht angelegt werden", e);
+  }
   return sandbox.id;
 }
 
